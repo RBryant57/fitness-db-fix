@@ -23,4 +23,21 @@ Run order on staging first (`-S .\DEVELOPMENT`), then production (`-S .`):
 
 After each step: re-import the project from the database (or make the same edit), build, commit.
 
-Example: `sqlcmd -S .\DEVELOPMENT -d Fitness -E -I -b -i archive\scripts\01_move_to_archive_schema.sql`
+## Running the scripts
+
+`Run-FitnessScripts.ps1` runs them in order, one phase at a time, and saves every script's output to `logs\` (ignored by Git):
+
+```powershell
+cd db\scripts
+.\Run-FitnessScripts.ps1 -Phase Audit
+.\Run-FitnessScripts.ps1 -Phase Test                       # stops on FIXED-ERROR / UNEXPECTED-DIFF / FAIL
+.\Run-FitnessScripts.ps1 -Phase Archive                    # 00b, 01, 01b
+.\Run-FitnessScripts.ps1 -Phase Duration                   # views + rebuild preview
+.\Run-FitnessScripts.ps1 -Phase Duration -Apply            # views + rebuild
+.\Run-FitnessScripts.ps1 -Phase Permissions -ServiceUser 'IIS APPPOOL\<Pool>' [-Apply]
+.\Run-FitnessScripts.ps1 -Phase Drop                       # after the quarantine period
+```
+
+The default target is staging (`.\DEVELOPMENT`). For production add `-Server . -Production`; you are asked to type the server name to confirm.
+
+Running one script by hand: `sqlcmd -S .\DEVELOPMENT -d Fitness -E -I -b -i archive\scripts\01_move_to_archive_schema.sql`

@@ -25,9 +25,10 @@ SET QUOTED_IDENTIFIER ON;
 GO
 SET NOCOUNT ON;
 GO
-IF DB_NAME() <> N'Fitness'
+DECLARE @CurrentDb sysname = DB_NAME();   -- RAISERROR arguments must be variables or constants, not function calls
+IF @CurrentDb <> N'Fitness'
 BEGIN
-    RAISERROR(N'Connected to database %s, not Fitness. Nothing will be run.', 16, 1, DB_NAME());
+    RAISERROR(N'Connected to database %s, not Fitness. Nothing will be run.', 16, 1, @CurrentDb);
     SET NOEXEC ON;
 END;
 GO
