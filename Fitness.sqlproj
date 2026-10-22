@@ -14,6 +14,6 @@
     <QuotedIdentifier>True</QuotedIdentifier>
   </PropertyGroup>
   <ItemGroup>
-    <Build Remove="archive\**" />                 <!-- archived procedures stay out of the model -->
+    <Build Remove="db\archive\**" />                 <!-- archived procedures stay out of the model -->
   </ItemGroup>
 </Project>
