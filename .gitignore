@@ -1,0 +1,63 @@
+### Build output (SDK-style SQL project, any folder level)
+bin/
+obj/
+*.dacpac
+*.bacpac
+
+### SSDT / SqlPackage caches and generated files
+*.dbmdl
+*.jfm
+*.sqlproj.user
+# change scripts generated with sqlpackage /Action:Script, and sqlcmd output files
+change*.sql
+*.rpt
+fixtest_results.txt
+
+### Publish profiles: they hold connection strings, and may hold passwords.
+### Keep a password-free template in Git instead (e.g. Fitness.staging.publish.template.xml).
+*.publish.xml
+!*.publish.template.xml
+
+### Secrets
+.env
+.env.*
+secrets.json
+*.pfx
+*.pem
+
+### Database files and backups
+*.bak
+*.trn
+*.mdf
+*.ldf
+*.ndf
+
+### Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+### VS Code (keep shared settings and recommended extensions)
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+### Logs
+*.log
+TestResults/
+
+### Windows
+# Windows thumbnail cache files
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows shortcuts
+*.lnk
