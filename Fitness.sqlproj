@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build">
+  <Sdk Name="Microsoft.Build.Sql" Version="2.3.0" />
+  <PropertyGroup>
+    <Name>Fitness</Name>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql170DatabaseSchemaProvider</DSP>
+    <ModelCollation>1033, CI</ModelCollation>
+    <ProjectGuid>A0FDDE6A-791B-4F2B-B75F-73E4D4906481</ProjectGuid>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql170DatabaseSchemaProvider</DSP>  <!-- SQL Server 2025 -->
+    <CompatibilityMode>100</CompatibilityMode>   <!-- match the live database until Step 3 -->
+    <AnsiNulls>True</AnsiNulls>
+    <QuotedIdentifier>True</QuotedIdentifier>
+  </PropertyGroup>
+  <ItemGroup>
+    <Build Remove="archive\**" />                 <!-- archived procedures stay out of the model -->
+  </ItemGroup>
+</Project>
