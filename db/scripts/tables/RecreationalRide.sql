@@ -3,7 +3,7 @@
 -- Removed with them: CK_BikeRecTimeHours, CK_BikeRecTimeMinutes, CK_BikeRecTimeSeconds, CK_RideRecTimeHours, CK_RideRecTimeMinutes, CK_RideRecTimeSeconds, DF_RecreationalRide_BikeTimeHours, DF_RecreationalRide_BikeTimeMinutes, DF_RecreationalRide_BikeTimeSeconds, DF_RecreationalRide_RideTimeHours, DF_RecreationalRide_RideTimeMinutes, DF_RecreationalRide_RideTimeSeconds.
 -- Computed (not stored), text in the form hh:mm:ss: Duration (StartTime to EndTime), BikeDuration (StartTime to BikeEndTime), RestDuration (BikeEndTime to EndTime; shown with a leading minus if BikeEndTime is after EndTime).
 -- Everything else is unchanged from the dacpac (types, constraint names, defaults).
--- Changed: Notes is nvarchar(4000) (it is still text in production; every other Notes column is already nvarchar).
+-- Changed: Notes is nvarchar(4000) (the agreed type for every Notes column).
 -- In the dacpac these foreign keys are not trusted (created WITH NOCHECK): FK_RecreationalRide_Bike, FK_RecreationalRide_GpxJson, FK_RecreationalRide_Route.
 SET ANSI_NULLS ON;
 GO

@@ -1,7 +1,8 @@
 # Fitness procedures — change log for the fixes (2026-10-14)
 
 Every one of the 112 stored procedures and 5 scalar functions was rewritten. The fixed definitions are in
-`archive/procedures/` and `archive/functions/`; the pre-fix originals are in `archive/procedures-original/` and
+`archive/procedures/` and `archive/functions/` (except `GetLastEntries`, which stays live in `dbo` and is in
+`procedures/GetLastEntries.sql`); the pre-fix originals are in `archive/procedures-original/` and
 `archive/functions-original/`. Each file carries the same `-- Changes:` header that appears below.
 
 ## Conventions applied everywhere
@@ -157,7 +158,10 @@ Every one of the 112 stored procedures and 5 scalar functions was rewritten. The
 - SET NOCOUNT and the DECLAREs sat outside BEGIN...END; restructured.
 - Range parameters are `date`, end date inclusive; result column named ExerciseHours.
 
-### GetLastEntries (procedure)
+### GetLastEntries (procedure) — LIVE, not archived
+
+  Status: stays in `dbo` as part of the database (the API uses it). File: `procedures/GetLastEntries.sql`.
+  API impact: the result now has an extra row, "Last Stair Session".
 
   Changes:
 - SELECT * replaced by explicit columns; schema-qualified.

@@ -10,7 +10,8 @@
       Test         00c_test_procedure_fixes.sql                read-only; stops if the summary has FIXED-ERROR,
                                                                UNEXPECTED-DIFF or FAIL
       Archive      00b_apply_procedure_fixes.sql               apply the procedure fixes
-                   01_move_to_archive_schema.sql               move procedures to the [archive] schema
+                   01_move_to_archive_schema.sql               move procedures to the [archive] schema (not GetLastEntries)
+                   01c_restore_GetLastEntries.sql              move GetLastEntries back to dbo if it was archived
                    01b_archive_gpx_tables.sql                  move the six legacy GPX tables to [archive]
       Duration     views\*.sql                                 revised report views
                    tables\rebuild_<Table>.sql (nine tables)    preview only, unless -Apply
@@ -150,6 +151,7 @@ try {
             if (-not $testLogs) { Write-Warning 'No 00c log found in db\scripts\logs. Run -Phase Test first unless you already have.' }
             Invoke-Script (Get-Script "$archive\00b_apply_procedure_fixes.sql") '00b_apply_procedure_fixes.sql' | Out-Null
             Invoke-Script (Get-Script "$archive\01_move_to_archive_schema.sql") '01_move_to_archive_schema.sql' | Out-Null
+            Invoke-Script (Get-Script "$archive\01c_restore_GetLastEntries.sql") '01c_restore_GetLastEntries.sql' | Out-Null
             Invoke-Script (Get-Script "$archive\01b_archive_gpx_tables.sql")    '01b_archive_gpx_tables.sql'    | Out-Null
             Write-Host "`nArchive done. Re-import the project, delete db\Fitness\src\archive, build, commit." -ForegroundColor Green
         }

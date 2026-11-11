@@ -1,5 +1,6 @@
 -- 03_drop_archived_objects.sql
 -- ONLY run after the quarantine period has passed with no errors and the .sql files are committed to source control.
+-- dbo.GetLastEntries is not archived and is never dropped here: it stays live in dbo.
 SET XACT_ABORT ON; BEGIN TRANSACTION;
 DROP PROCEDURE IF EXISTS archive.[ClearRouteDirections];
 DROP PROCEDURE IF EXISTS archive.[ClearRoutePictures];
@@ -14,7 +15,6 @@ DROP PROCEDURE IF EXISTS archive.[GetCircuitComponentById];
 DROP PROCEDURE IF EXISTS archive.[GetCurrentBikePart];
 DROP PROCEDURE IF EXISTS archive.[GetCurrentBikePartsById];
 DROP PROCEDURE IF EXISTS archive.[GetExerciseHoursByDate];
-DROP PROCEDURE IF EXISTS archive.[GetLastEntries];
 DROP PROCEDURE IF EXISTS archive.[GetMaintenanceByBikeId];
 DROP PROCEDURE IF EXISTS archive.[GetMaintenanceCount];
 DROP PROCEDURE IF EXISTS archive.[GetMaintenanceSubset];

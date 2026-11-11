@@ -1,5 +1,6 @@
 -- 01_move_to_archive_schema.sql
--- Moves all 112 stored procedures and the 3 orphan scalar functions into an [archive] schema.
+-- Moves 111 of the 112 stored procedures and the 3 orphan scalar functions into an [archive] schema.
+-- dbo.GetLastEntries is NOT moved: it stays live in dbo (the API uses it). 00b deploys its fixed version.
 -- Reversible: ALTER SCHEMA dbo TRANSFER archive.<name> puts any object back.
 -- Run inside a transaction; nothing is dropped.
 SET XACT_ABORT ON;
@@ -19,7 +20,7 @@ IF OBJECT_ID('dbo.GetCircuitComponentById','P') IS NOT NULL ALTER SCHEMA archive
 IF OBJECT_ID('dbo.GetCurrentBikePart','P') IS NOT NULL ALTER SCHEMA archive TRANSFER dbo.[GetCurrentBikePart];
 IF OBJECT_ID('dbo.GetCurrentBikePartsById','P') IS NOT NULL ALTER SCHEMA archive TRANSFER dbo.[GetCurrentBikePartsById];
 IF OBJECT_ID('dbo.GetExerciseHoursByDate','P') IS NOT NULL ALTER SCHEMA archive TRANSFER dbo.[GetExerciseHoursByDate];
-IF OBJECT_ID('dbo.GetLastEntries','P') IS NOT NULL ALTER SCHEMA archive TRANSFER dbo.[GetLastEntries];
+-- dbo.GetLastEntries stays in dbo (kept live; see db/scripts/procedures/GetLastEntries.sql)
 IF OBJECT_ID('dbo.GetMaintenanceByBikeId','P') IS NOT NULL ALTER SCHEMA archive TRANSFER dbo.[GetMaintenanceByBikeId];
 IF OBJECT_ID('dbo.GetMaintenanceCount','P') IS NOT NULL ALTER SCHEMA archive TRANSFER dbo.[GetMaintenanceCount];
 IF OBJECT_ID('dbo.GetMaintenanceSubset','P') IS NOT NULL ALTER SCHEMA archive TRANSFER dbo.[GetMaintenanceSubset];
@@ -125,5 +126,5 @@ IF OBJECT_ID('dbo.ToDecimalHours','FN') IS NOT NULL ALTER SCHEMA archive TRANSFE
 
 -- Record the archive event
 IF OBJECT_ID('archive.ArchiveLog','U') IS NULL CREATE TABLE archive.ArchiveLog (Id int IDENTITY PRIMARY KEY, ArchivedOn datetime2 NOT NULL DEFAULT SYSUTCDATETIME(), Note nvarchar(400) NOT NULL);
-INSERT archive.ArchiveLog(Note) VALUES (N'Moved 112 procedures + 3 unused scalar functions from dbo to archive. Source of truth for this logic is the API; scripts kept in source control under db/archive.');
+INSERT archive.ArchiveLog(Note) VALUES (N'Moved 111 procedures (all but GetLastEntries) + 3 unused scalar functions from dbo to archive. Source of truth for this logic is the API; scripts kept in source control under db/archive.');
 COMMIT;

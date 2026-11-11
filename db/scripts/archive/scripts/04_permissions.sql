@@ -3,7 +3,7 @@
 -- retired YELLOWCADDIS domain (those accounts can never log in again).
 --
 -- End state
---   * Role FitnessApp: SELECT, INSERT, UPDATE, DELETE on SCHEMA::dbo (tables and the report views, including any added
+--   * Role FitnessApp: EXECUTE on dbo.GetLastEntries (the one live procedure) and SELECT, INSERT, UPDATE, DELETE on SCHEMA::dbo (tables and the report views, including any added
 --     later). It has no rights on the [archive] schema and no DDL rights.
 --   * The service's database user is a member of FitnessApp and of nothing else.
 --   * Your admin login is the only member of db_owner. The database itself is owned by sa (or the login you choose).
@@ -160,6 +160,10 @@ IF USER_ID(N'FitnessApp') IS NULL
     INSERT @Steps VALUES (N'Create role FitnessApp', N'CREATE ROLE FitnessApp AUTHORIZATION dbo;');
 INSERT @Steps VALUES (N'Grant FitnessApp read/write on dbo',
     N'GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::dbo TO FitnessApp;');
+-- dbo.GetLastEntries is the one stored procedure that stays live (the API calls it).
+IF OBJECT_ID(N'dbo.GetLastEntries', N'P') IS NOT NULL
+    INSERT @Steps VALUES (N'Grant FitnessApp EXECUTE on dbo.GetLastEntries',
+        N'GRANT EXECUTE ON OBJECT::dbo.GetLastEntries TO FitnessApp;');
 
 -- 3.5 Service user: FitnessApp only
 IF NOT EXISTS (SELECT 1 FROM sys.database_role_members
@@ -236,7 +240,8 @@ BEGIN
     SELECT permission_name FROM fn_my_permissions(N'dbo', N'SCHEMA') ORDER BY permission_name;
     SELECT HAS_PERMS_BY_NAME(DB_NAME(), N'DATABASE', N'CREATE TABLE') AS CanCreateTable,      -- expect 0
            HAS_PERMS_BY_NAME(N'archive', N'SCHEMA', N'SELECT')         AS CanReadArchive,      -- expect 0 (or NULL)
-           IS_ROLEMEMBER(N'db_owner')                                  AS IsDbOwner;           -- expect 0
+           IS_ROLEMEMBER(N'db_owner')                                  AS IsDbOwner,           -- expect 0
+           HAS_PERMS_BY_NAME(N'dbo.GetLastEntries', N'OBJECT', N'EXECUTE') AS CanRunGetLastEntries; -- expect 1
     REVERT;
 END;
 GO

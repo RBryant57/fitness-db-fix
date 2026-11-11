@@ -259,7 +259,7 @@ BEGIN TRY
     NumberOfAttempts   int            NOT NULL CONSTRAINT DF_TrainingRide_NumberOfAttempts DEFAULT ((0)),
     NumberOfSuccesses  int            NOT NULL CONSTRAINT DF_TrainingRide_NumberOfSuccesses DEFAULT ((0)),
     GpxJsonId          int            NULL,
-    Notes              nvarchar(max)  NULL,
+    Notes              nvarchar(4000) NULL,
 
     CONSTRAINT PK_TrainingRide PRIMARY KEY CLUSTERED (Id),
     CONSTRAINT FK_TrainingRide_Bike FOREIGN KEY (BikeId) REFERENCES dbo.Bike (Id),

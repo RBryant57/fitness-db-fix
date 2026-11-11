@@ -5,16 +5,17 @@ Procedures and functions were fixed on 2026-10-14 before archiving; see `CHANGEL
 
 | Folder / file | Contents |
 |---|---|
-| `procedures/` | 112 stored procedures — **fixed** versions, one `CREATE OR ALTER` script each, with a `-- Changes:` header |
+| `procedures/` | 111 archived stored procedures — **fixed** versions, one `CREATE OR ALTER` script each, with a `-- Changes:` header. `GetLastEntries` is not here: it stays live in `dbo` (see `../procedures/GetLastEntries.sql`) |
 | `functions/` | 5 scalar functions — fixed versions |
-| `procedures-original/` | the same 112 procedures exactly as they were in the dacpac, before the fixes |
+| `procedures-original/` | all 112 procedures exactly as they were in the dacpac, before the fixes (including `GetLastEntries`) |
 | `functions-original/` | the 5 functions before the fixes |
 | `views/` | 10 views (live — the API reads them for reports; snapshot of the current definitions) |
 | `CHANGELOG.md` | every change, per object, plus the conventions applied to all of them |
 | `scripts/00_usage_audit.sql` | proves the procedures are unused; lists real dependencies and permissions |
 | `scripts/00c_test_procedure_fixes.sql` | deploys the fixed versions into a scratch schema and compares them with the current ones on your data; changes nothing |
 | `scripts/00b_apply_procedure_fixes.sql` | applies all fixes to `dbo` (CREATE OR ALTER, re-runnable) |
-| `scripts/01_move_to_archive_schema.sql` | moves procs + 3 orphan functions to an `archive` schema (reversible) |
+| `scripts/01_move_to_archive_schema.sql` | moves 111 procs (all but `GetLastEntries`) + 3 orphan functions to an `archive` schema (reversible) |
+| `scripts/01c_restore_GetLastEntries.sql` | moves `GetLastEntries` back to `dbo` where an earlier 01 archived it (staging); does nothing otherwise |
 | `scripts/01b_archive_gpx_tables.sql` | moves the six legacy `*GPX` tables (with data) to `archive` and drops their FKs; GpxJson is the live design |
 | `scripts/02_rollback_archive.sql` | undoes step 01 (procedures and functions only) |
 | `scripts/02b_rollback_gpx_archive.sql` | undoes step 01b |
@@ -24,17 +25,22 @@ Procedures and functions were fixed on 2026-10-14 before archiving; see `CHANGEL
 
 ## Order to run
 
-1. `00_usage_audit.sql` — confirm nothing calls the procedures.
+1. `00_usage_audit.sql` — confirm nothing calls the procedures (except `GetLastEntries`, which the API uses and which stays).
 2. `00c_test_procedure_fixes.sql` — `sqlcmd -S <server> -d Fitness -E -I -i 00c_test_procedure_fixes.sql -o fixtest_results.txt`.
    Look at the summary at the end: there should be no `FIXED-ERROR`, `UNEXPECTED-DIFF` or `FAIL` lines.
 3. `00b_apply_procedure_fixes.sql` — `sqlcmd -S <server> -d Fitness -E -I -b -i 00b_apply_procedure_fixes.sql`.
    Not atomic: if it stops part-way, fix the cause and re-run it (every object is CREATE OR ALTER).
-4. `01_move_to_archive_schema.sql`, then `01b_archive_gpx_tables.sql` (it stops if anything in `dbo` still uses the GPX tables).
+4. `01_move_to_archive_schema.sql`, then `01c_restore_GetLastEntries.sql` (only matters on staging), then `01b_archive_gpx_tables.sql`
+   (it stops if anything in `dbo` still uses the GPX tables).
 5. `04_permissions.sql` — set `@ServiceUser`, run once to preview, then again with `@Apply = 1`.
 6. Quarantine (~60 days), then `03_drop_archived_objects.sql` and, after a backup (and a `bcp` export if you want the raw GPX XML),
    `03b_drop_gpx_tables.sql`.
 
 ## Notes after the fixes
+
+- `GetLastEntries` is **not archived**: it is part of the live database because the API uses it. `00b` deploys its fixed
+  version, `01` leaves it in `dbo`, `03` never drops it, and `04_permissions.sql` grants `EXECUTE` on it to `FitnessApp`.
+  The fix adds a "Last Stair Session" row to its result.
 
 - `ExceptionalMiles` is no longer called by any procedure; `OdometerReading` is called only by `GetPartAge`.
   Step 01 still moves only the three functions that had no callers before (`MaximumRideDate`, `MinimumRideDate`,

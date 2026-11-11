@@ -3,6 +3,7 @@
 -- Removed with them: CK_RideTimeHours, CK_RideTimeMinutes, CK_RideTimeSeconds, DF_TrainingRide_RideTimeHours, DF_TrainingRide_RideTimeMinutes, DF_TrainingRide_RideTimeSeconds.
 -- Computed (not stored), text in the form hh:mm:ss: Duration (StartTime to EndTime).
 -- Everything else is unchanged from the dacpac (types, constraint names, defaults).
+-- Changed: Notes is nvarchar(4000) (the agreed type for every Notes column).
 -- In the dacpac these foreign keys are not trusted (created WITH NOCHECK): FK_TrainingRide_Bike, FK_TrainingRide_GpxJson, FK_TrainingRide_Route.
 SET ANSI_NULLS ON;
 GO
@@ -35,7 +36,7 @@ CREATE TABLE dbo.TrainingRide
     NumberOfAttempts   int            NOT NULL CONSTRAINT DF_TrainingRide_NumberOfAttempts DEFAULT ((0)),
     NumberOfSuccesses  int            NOT NULL CONSTRAINT DF_TrainingRide_NumberOfSuccesses DEFAULT ((0)),
     GpxJsonId          int            NULL,
-    Notes              nvarchar(max)  NULL,
+    Notes              nvarchar(4000) NULL,
 
     CONSTRAINT PK_TrainingRide PRIMARY KEY CLUSTERED (Id),
     CONSTRAINT FK_TrainingRide_Bike FOREIGN KEY (BikeId) REFERENCES dbo.Bike (Id),

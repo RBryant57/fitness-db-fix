@@ -1,63 +1,26 @@
-
--- =============================================
--- Author:		YellowCaddis Development
--- Create date: 8/23/08
--- Description:	Calculates whether or not Bike only miles have
---				been accumulated when no other miles have been.
--- =============================================
-CREATE FUNCTION [dbo].[ExceptionalMiles] 
+-- Bike-only miles (BikeOnlyMiles) for one bike or all bikes, optionally within a date range.
+-- Live function (stays in dbo). Fixed 2026-10-14; deployed by 00b_apply_procedure_fixes.sql.
+-- dbo.ExceptionalMiles
+-- Changes:
+--   * BUG: the "all bikes, date range" branch tested `@StartDate <> null`, which is never true, so it
+--     always returned the all-time total. Replaced the four branches with one query using IS NULL logic.
+--   * Date parameters are now `date`; the range is inclusive of the whole @EndDate day.
+--   * Schema-qualified.
+CREATE FUNCTION [dbo].[ExceptionalMiles]
 (
-	@StartDate datetime, 
-	@EndDate datetime, 
-	@BikeId int
+    @StartDate date,
+    @EndDate   date,
+    @BikeId    int
 )
 RETURNS int
 AS
 BEGIN
-	-- Declare the return variable here
-	DECLARE @Result int
-
-	-- For a specific Bike
-	IF @BikeId > 0
-		BEGIN
-			-- For a specific date
-			IF (@StartDate IS NOT NULL)
-				BEGIN
-					SET @Result = COALESCE((SELECT SUM(EndOdometer - StartOdometer) FROM BikeOnlyMiles 
-									WHERE BikeId = @BikeId AND ([Date] BETWEEN @StartDate AND @EndDate)), 0)
-									
-				END
-			-- For all dates
-			ELSE
-				BEGIN
-					-- If there are no Bike only miles for the Bike, return with 0.
-					SET @Result = COALESCE((SELECT SUM(EndOdometer - StartOdometer) FROM BikeOnlyMiles 
-									WHERE BikeId = @BikeId), 0)
-
-				END
-		END
-	-- For all Bikes
-	ELSE
-		BEGIN
-			-- For a specific date
-			IF @StartDate <> null
-				BEGIN
-					-- If there are no Bike only miles for the period, return with 0.
-					SET @Result = COALESCE((SELECT SUM(EndOdometer - StartOdometer) FROM BikeOnlyMiles 
-									WHERE [Date] BETWEEN @StartDate AND @EndDate), 0)
-
-				END
-			-- For all dates	
-			ELSE
-				BEGIN
-					SET @Result = COALESCE((SELECT SUM(EndOdometer - StartOdometer) FROM BikeOnlyMiles), 0)
-				END
-		END
-
-	-- Return the result of the function
-	RETURN @Result
-
-END
-
+    RETURN COALESCE((
+        SELECT SUM(bom.EndOdometer - bom.StartOdometer)
+        FROM dbo.BikeOnlyMiles AS bom
+        WHERE (@BikeId IS NULL OR @BikeId <= 0 OR bom.BikeId = @BikeId)
+          AND (@StartDate IS NULL
+               OR (bom.[Date] >= @StartDate AND bom.[Date] < DATEADD(day, 1, @EndDate)))
+    ), 0);
+END;
 GO
-

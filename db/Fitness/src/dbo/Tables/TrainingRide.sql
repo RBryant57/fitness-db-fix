@@ -23,7 +23,7 @@ CREATE TABLE [dbo].[TrainingRide] (
     [NumberOfAttempts]  INT            CONSTRAINT [DF_TrainingRide_NumberOfAttempts] DEFAULT ((0)) NOT NULL,
     [NumberOfSuccesses] INT            CONSTRAINT [DF_TrainingRide_NumberOfSuccesses] DEFAULT ((0)) NOT NULL,
     [GpxJsonId]         INT            NULL,
-    [Notes]             NVARCHAR (MAX) NULL,
+    [Notes]             NVARCHAR (4000) NULL,
     CONSTRAINT [PK_TrainingRide] PRIMARY KEY CLUSTERED ([Id] ASC),
     CONSTRAINT [CK_AverageCadence] CHECK ([AverageCadence]>(0) AND [AverageCadence]<(200)),
     CONSTRAINT [CK_AverageHR] CHECK ([AverageHR]>(0) AND [AverageHR]<(220)),

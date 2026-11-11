@@ -1,5 +1,6 @@
 -- Fixed version of dbo.ExceptionalMiles (2026-10-14). The pre-fix original is archive/functions-original/ExceptionalMiles.sql.
--- Deployed by archive/scripts/00b_apply_procedure_fixes.sql; kept for reference after archiving.
+-- Deployed by archive/scripts/00b_apply_procedure_fixes.sql. NOT archived: this function stays live in dbo
+-- (step 01 moves only MaximumRideDate, MinimumRideDate and ToDecimalHours). The SQL project's copy is db/Fitness/src/dbo/Functions/ExceptionalMiles.sql.
 SET ANSI_NULLS ON;
 GO
 SET QUOTED_IDENTIFIER ON;

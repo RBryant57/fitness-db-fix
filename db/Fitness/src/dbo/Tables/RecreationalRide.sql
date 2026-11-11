@@ -24,7 +24,7 @@ CREATE TABLE [dbo].[RecreationalRide] (
     [BikeId]          INT            NOT NULL,
     [RouteId]         INT            NOT NULL,
     [GpxJsonId]       INT            NULL,
-    [Notes]           TEXT           NULL,
+    [Notes]           NVARCHAR (4000) NULL,
     CONSTRAINT [PK_RecreationalRide] PRIMARY KEY CLUSTERED ([Id] ASC),
     CONSTRAINT [CK_AverageRecCadence] CHECK ([AverageCadence]>(0) AND [AverageCadence]<(200)),
     CONSTRAINT [CK_AverageRecHR] CHECK ([AverageHR]>(0) AND [AverageHR]<(220)),

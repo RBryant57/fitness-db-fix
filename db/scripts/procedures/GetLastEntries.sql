@@ -1,5 +1,7 @@
--- Fixed version of dbo.GetLastEntries (2026-10-14). The pre-fix original is archive/procedures-original/GetLastEntries.sql.
--- Deployed by archive/scripts/00b_apply_procedure_fixes.sql; kept for reference after archiving.
+-- dbo.GetLastEntries -- LIVE: this procedure is part of the database and is NOT archived (the API uses it).
+-- Fixed version (2026-10-14). The pre-fix original is archive/procedures-original/GetLastEntries.sql.
+-- Deployed by archive/scripts/00b_apply_procedure_fixes.sql. Step 01 leaves it in dbo, and step 03 never drops it.
+-- The SQL project's definition is db/Fitness/src/dbo/StoredProcedures/GetLastEntries.sql.
 SET ANSI_NULLS ON;
 GO
 SET QUOTED_IDENTIFIER ON;
