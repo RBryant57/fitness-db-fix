@@ -99,9 +99,9 @@ function Get-Script([string]$path) {
 function New-ScriptCopy([string]$path, [hashtable]$replace) {
     $text = [IO.File]::ReadAllText($path)
     foreach ($pattern in $replace.Keys) {
-        $new = [regex]::Replace($text, $pattern, $replace[$pattern])
-        if ($new -eq $text) { throw "Could not set '$pattern' in $(Split-Path $path -Leaf)." }
-        $text = $new
+        # Fail only when the setting isn't in the script; replacing a value with the same value is fine.
+        if (-not [regex]::IsMatch($text, $pattern)) { throw "Could not find '$pattern' in $(Split-Path $path -Leaf)." }
+        $text = [regex]::Replace($text, $pattern, $replace[$pattern].Replace('$', '$$'))
     }
     $tmp = Join-Path $env:TEMP ("fitness-" + [IO.Path]::GetFileName($path))
     [IO.File]::WriteAllText($tmp, $text, (New-Object Text.UTF8Encoding $true))
@@ -193,7 +193,7 @@ try {
 
         'Permissions' {
             if (-not $ServiceUser) { throw '-ServiceUser is required: the database user the .NET service connects as.' }
-            $set = @{ "DECLARE @ServiceUser sysname = N'[^']*';" = "DECLARE @ServiceUser sysname = N'$($ServiceUser.Replace("'", "''"))';" }
+            $set = @{ "DECLARE @ServiceUser\s+sysname\s*=\s*N'[^']*';" = "DECLARE @ServiceUser sysname = N'$($ServiceUser.Replace("'", "''"))';" }
             if ($Apply) { $set['DECLARE @Apply\s+bit\s*=\s*0;'] = 'DECLARE @Apply       bit     = 1;' }
             Invoke-Script (New-ScriptCopy (Get-Script "$archive\04_permissions.sql") $set) '04_permissions.sql' | Out-Null
             if (-not $Apply) { Write-Host "`nPreview only. Review the statements in the log, then run again with -Apply." -ForegroundColor Green }
