@@ -1,23 +1,25 @@
-CREATE TABLE [dbo].[StationaryRide] (
-    [Id]              INT             IDENTITY (1, 1) NOT NULL,
-    [Date]            DATETIME        NOT NULL,
-    [StartOdometer]   INT             NOT NULL,
-    [EndOdometer]     INT             NOT NULL,
-    [Distance]        DECIMAL (9, 4)  NULL,
-    [StartTime]       DATETIME        NOT NULL,
-    [EndTime]         DATETIME        NOT NULL,
-    [RideTimeHours]   INT             NOT NULL,
-    [RideTimeMinutes] INT             NOT NULL,
-    [RideTimeSeconds] INT             NOT NULL,
-    [AverageHR]       INT             NOT NULL,
-    [MaxHR]           INT             NOT NULL,
-    [AverageCadence]  INT             NOT NULL,
-    [BikeId]          INT             NULL,
-    [Notes]           NVARCHAR (4000) NULL,
-    CONSTRAINT [PK_StationaryRide] PRIMARY KEY CLUSTERED ([Id] ASC),
-    CONSTRAINT [FK_StationaryRide_Bike] FOREIGN KEY ([BikeId]) REFERENCES [dbo].[Bike] ([Id])
+﻿-- dbo.StationaryRide after the S5 rebuild: computed durations (time(0)) follow their end times.
+-- Removed: RideTimeHours, RideTimeMinutes, RideTimeSeconds.
+-- Removed with them: no constraints or defaults.
+-- Computed (not stored), time(0), shown as hh:mm:ss: Duration (StartTime to EndTime).
+-- Everything else is unchanged from the dacpac (types, constraint names, defaults).
+CREATE TABLE dbo.StationaryRide
+(
+    Id               int            IDENTITY(1, 1) NOT NULL,
+    [Date]           datetime       NOT NULL,
+    StartOdometer    int            NOT NULL,
+    EndOdometer      int            NOT NULL,
+    Distance         decimal(9, 4)  NULL,
+    StartTime        datetime       NOT NULL,
+    EndTime          datetime       NOT NULL,
+    Duration         AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, EndTime), 0), 0),
+    AverageHR        int            NOT NULL,
+    MaxHR            int            NOT NULL,
+    AverageCadence   int            NOT NULL,
+    BikeId           int            NULL,
+    Notes            nvarchar(4000) NULL,
+
+    CONSTRAINT PK_StationaryRide PRIMARY KEY CLUSTERED (Id),
+    CONSTRAINT FK_StationaryRide_Bike FOREIGN KEY (BikeId) REFERENCES dbo.Bike (Id)
 );
-
-
 GO
-

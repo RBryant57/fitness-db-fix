@@ -1,7 +1,7 @@
--- dbo.TrainingWalk, as defined in production (dacpac extracted 2026-10-21) with the S5 change applied.
+﻿-- dbo.TrainingWalk, as defined in production (dacpac extracted 2026-10-21) with the S5 change applied.
 -- Removed: WalkTimeHours, WalkTimeMinutes, WalkTimeSeconds.
 -- Removed with them: no constraints or defaults.
--- Computed (not stored), text in the form hh:mm:ss: Duration (StartTime to EndTime).
+-- Computed (not stored), time(0), shown as hh:mm:ss: Duration (StartTime to EndTime).
 -- Everything else is unchanged from the dacpac (types, constraint names, defaults).
 -- In the dacpac these foreign keys are not trusted (created WITH NOCHECK): FK_TrainingWalk_GpxJson, FK_TrainingWalk_Route, FK_TrainingWalk_Shoe.
 SET ANSI_NULLS ON;
@@ -15,10 +15,7 @@ CREATE TABLE dbo.TrainingWalk
     Distance           decimal(9, 4)  NOT NULL,
     StartTime          datetime       NOT NULL,
     EndTime            datetime       NOT NULL,
-    Duration           AS CONCAT(CASE WHEN DATEDIFF(second, StartTime, EndTime) / 3600 < 10 THEN '0' ELSE '' END,
-                                 DATEDIFF(second, StartTime, EndTime) / 3600, ':',
-                                 RIGHT(CONCAT('0', DATEDIFF(second, StartTime, EndTime) % 3600 / 60), 2), ':',
-                                 RIGHT(CONCAT('0', DATEDIFF(second, StartTime, EndTime) % 60), 2)),
+    Duration           AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, EndTime), 0), 0),
     AverageHR          int            NOT NULL,
     MaxHR              int            NOT NULL,
     ElevationGain      int            NOT NULL,

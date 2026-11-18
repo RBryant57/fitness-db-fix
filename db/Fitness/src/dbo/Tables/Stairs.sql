@@ -1,21 +1,23 @@
-CREATE TABLE [dbo].[Stairs] (
-    [Id]               INT             IDENTITY (1, 1) NOT NULL,
-    [Date]             DATETIME        NOT NULL,
-    [StairQuantity]    INT             NOT NULL,
-    [StartTime]        DATETIME        NOT NULL,
-    [EndTime]          DATETIME        NOT NULL,
-    [StairTimeHours]   INT             NOT NULL,
-    [StairTimeMinutes] INT             NOT NULL,
-    [StairTimeSeconds] INT             NOT NULL,
-    [AverageHR]        INT             NOT NULL,
-    [MaxHR]            INT             NOT NULL,
-    [ElevationGain]    INT             NOT NULL,
-    [ShoeId]           INT             NOT NULL,
-    [Notes]            NVARCHAR (4000) NULL,
-    CONSTRAINT [PK_Stairs] PRIMARY KEY CLUSTERED ([Id] ASC),
-    CONSTRAINT [FK_Stairs_Shoe] FOREIGN KEY ([ShoeId]) REFERENCES [dbo].[Shoe] ([Id])
+﻿-- dbo.Stairs after the S5 rebuild: computed durations (time(0)) follow their end times.
+-- Removed: StairTimeHours, StairTimeMinutes, StairTimeSeconds.
+-- Removed with them: no constraints or defaults.
+-- Computed (not stored), time(0), shown as hh:mm:ss: Duration (StartTime to EndTime).
+-- Everything else is unchanged from the dacpac (types, constraint names, defaults).
+CREATE TABLE dbo.Stairs
+(
+    Id                int            IDENTITY(1, 1) NOT NULL,
+    [Date]            datetime       NOT NULL,
+    StairQuantity     int            NOT NULL,
+    StartTime         datetime       NOT NULL,
+    EndTime           datetime       NOT NULL,
+    Duration          AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, EndTime), 0), 0),
+    AverageHR         int            NOT NULL,
+    MaxHR             int            NOT NULL,
+    ElevationGain     int            NOT NULL,
+    ShoeId            int            NOT NULL,
+    Notes             nvarchar(4000) NULL,
+
+    CONSTRAINT PK_Stairs PRIMARY KEY CLUSTERED (Id),
+    CONSTRAINT FK_Stairs_Shoe FOREIGN KEY (ShoeId) REFERENCES dbo.Shoe (Id)
 );
-
-
 GO
-

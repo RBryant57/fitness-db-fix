@@ -1,4 +1,4 @@
--- rebuild_RecreationalRun.sql
+﻿-- rebuild_RecreationalRun.sql
 -- S5 for dbo.RecreationalRun: rebuilds the table so that Duration after EndTime, PathDuration after PathEndTime, RestDuration after PathDuration, as in tables/RecreationalRun.sql.
 -- The stored RunTimeHours, RunTimeMinutes, RunTimeSeconds, PathTimeHours, PathTimeMinutes, PathTimeSeconds columns are not carried over.
 -- ALTER TABLE can only add a column at the end, so placing the computed column after its end time means
@@ -25,6 +25,8 @@
 --
 -- Run order: procedure steps (00c, 00b, 01) -> revised views -> this script (@Apply = 0, then 1) -> deploy the API.
 -- sqlcmd -S <server> -d Fitness -E -I -b -i rebuild_RecreationalRun.sql
+-- 2026-11-17: the computed durations are time(0) (were text), and the recreational tables get CK_<Table>_RestNotNegative.
+-- A table already rebuilt with text durations is rebuilt again to change them; one with time(0) is skipped.
 
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -49,8 +51,10 @@ END;
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.RecreationalRun') AND name IN (N'RunTimeHours', N'RunTimeMinutes', N'RunTimeSeconds', N'PathTimeHours', N'PathTimeMinutes', N'PathTimeSeconds'))
    AND (SELECT TOP (1) c2.name FROM sys.columns c1 JOIN sys.columns c2 ON c2.object_id = c1.object_id AND c2.column_id > c1.column_id WHERE c1.object_id = OBJECT_ID(N'dbo.RecreationalRun') AND c1.name = N'EndTime' ORDER BY c2.column_id) = N'Duration' AND (SELECT TOP (1) c2.name FROM sys.columns c1 JOIN sys.columns c2 ON c2.object_id = c1.object_id AND c2.column_id > c1.column_id WHERE c1.object_id = OBJECT_ID(N'dbo.RecreationalRun') AND c1.name = N'PathEndTime' ORDER BY c2.column_id) = N'PathDuration' AND (SELECT TOP (1) c2.name FROM sys.columns c1 JOIN sys.columns c2 ON c2.object_id = c1.object_id AND c2.column_id > c1.column_id WHERE c1.object_id = OBJECT_ID(N'dbo.RecreationalRun') AND c1.name = N'PathDuration' ORDER BY c2.column_id) = N'RestDuration'
+   AND (SELECT TYPE_NAME(system_type_id) FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.RecreationalRun') AND name = N'Duration') = N'time'
+   AND OBJECT_ID(N'dbo.CK_RecreationalRun_RestNotNegative', N'C') IS NOT NULL
 BEGIN
-    PRINT N'dbo.RecreationalRun already has the new layout (Duration after EndTime, PathDuration after PathEndTime, RestDuration after PathDuration). Nothing to do.';
+    PRINT N'dbo.RecreationalRun already has the new layout (time(0) durations; Duration after EndTime, PathDuration after PathEndTime, RestDuration after PathDuration). Nothing to do.';
     RETURN;
 END;
 
@@ -169,6 +173,12 @@ SET @Extra = STUFF((
 IF @Extra IS NOT NULL
     SET @Problems += NCHAR(10) + N'   triggers on the table (they would be lost): ' + @Extra;
 
+-- Check 6: rows the time(0) durations can't show (a negative duration would wrap round to 23:59:xx)
+SELECT @n = COUNT(*) FROM dbo.RecreationalRun WHERE EndTime < StartTime;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) where EndTime is before StartTime');
+SELECT @n = COUNT(*) FROM dbo.RecreationalRun WHERE PathEndTime > EndTime;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalRun_RestNotNegative (PathEndTime is after EndTime; run tables/00_fix_duration_data.sql)');
+
 -- Check 3: leftover from an earlier run
 IF OBJECT_ID(N'dbo.RecreationalRun_Old', N'U') IS NOT NULL
     SET @Problems += NCHAR(10) + N'   dbo.RecreationalRun_Old already exists (left by an earlier run); check it and drop or rename it';
@@ -242,19 +252,10 @@ BEGIN TRY
     Distance         decimal(9, 4)  NOT NULL,
     StartTime        datetime       NOT NULL,
     EndTime          datetime       NOT NULL,
-    Duration         AS CONCAT(CASE WHEN DATEDIFF(second, StartTime, EndTime) / 3600 < 10 THEN ''0'' ELSE '''' END,
-                               DATEDIFF(second, StartTime, EndTime) / 3600, '':'',
-                               RIGHT(CONCAT(''0'', DATEDIFF(second, StartTime, EndTime) % 3600 / 60), 2), '':'',
-                               RIGHT(CONCAT(''0'', DATEDIFF(second, StartTime, EndTime) % 60), 2)),
+    Duration         AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, EndTime), 0), 0),
     PathEndTime      datetime       NOT NULL,
-    PathDuration     AS CONCAT(CASE WHEN DATEDIFF(second, StartTime, PathEndTime) / 3600 < 10 THEN ''0'' ELSE '''' END,
-                               DATEDIFF(second, StartTime, PathEndTime) / 3600, '':'',
-                               RIGHT(CONCAT(''0'', DATEDIFF(second, StartTime, PathEndTime) % 3600 / 60), 2), '':'',
-                               RIGHT(CONCAT(''0'', DATEDIFF(second, StartTime, PathEndTime) % 60), 2)),
-    RestDuration     AS CONCAT(CASE WHEN DATEDIFF(second, PathEndTime, EndTime) < 0 THEN ''-'' ELSE '''' END,
-                               CASE WHEN ABS(DATEDIFF(second, PathEndTime, EndTime)) / 3600 < 10 THEN ''0'' ELSE '''' END, ABS(DATEDIFF(second, PathEndTime, EndTime)) / 3600, '':'',
-                               RIGHT(CONCAT(''0'', ABS(DATEDIFF(second, PathEndTime, EndTime)) % 3600 / 60), 2), '':'',
-                               RIGHT(CONCAT(''0'', ABS(DATEDIFF(second, PathEndTime, EndTime)) % 60), 2)),
+    PathDuration     AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, PathEndTime), 0), 0),
+    RestDuration     AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, PathEndTime, EndTime), 0), 0),
     AverageHR        int            NOT NULL,
     MaxHR            int            NOT NULL,
     ElevationGain    int            NOT NULL,
@@ -270,7 +271,8 @@ BEGIN TRY
     CONSTRAINT PK_RecreationalRun PRIMARY KEY CLUSTERED (Id),
     CONSTRAINT FK_RecreationalRun_GpxJson FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
     CONSTRAINT FK_RecreationalRun_Route FOREIGN KEY (RouteId) REFERENCES dbo.Route (Id),
-    CONSTRAINT FK_RecreationalRun_Shoe FOREIGN KEY (ShoeId) REFERENCES dbo.Shoe (Id)
+    CONSTRAINT FK_RecreationalRun_Shoe FOREIGN KEY (ShoeId) REFERENCES dbo.Shoe (Id),
+    CONSTRAINT CK_RecreationalRun_RestNotNegative CHECK (PathEndTime <= EndTime)
 );');
 
     -- 4. Copy the rows, keep the identity seed, drop the old table

@@ -13,6 +13,7 @@
                    01_move_to_archive_schema.sql               move procedures to the [archive] schema (not GetLastEntries)
                    01c_restore_GetLastEntries.sql              move GetLastEntries back to dbo if it was archived
                    01b_archive_gpx_tables.sql                  move the six legacy GPX tables to [archive]
+      DataFix      tables\00_fix_duration_data.sql             preview only, unless -Apply; data corrections before Duration
       Duration     views\*.sql                                 revised report views
                    tables\rebuild_<Table>.sql (nine tables)    preview only, unless -Apply
       Permissions  04_permissions.sql                          preview only, unless -Apply; needs -ServiceUser
@@ -37,13 +38,13 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('Audit', 'Test', 'Archive', 'Duration', 'Permissions', 'Drop', 'Rollback')]
+    [ValidateSet('Audit', 'Test', 'Archive', 'DataFix', 'Duration', 'Permissions', 'Drop', 'Rollback')]
     [string]$Phase,
 
     [string]$Server = '.\DEVELOPMENT',
     [string]$Database = 'Fitness',
 
-    # Make changes in the phases that preview by default (Duration, Permissions).
+    # Make changes in the phases that preview by default (DataFix, Duration, Permissions).
     [switch]$Apply,
 
     # Database user the .NET service connects as (Permissions phase).
@@ -154,6 +155,14 @@ try {
             Invoke-Script (Get-Script "$archive\01c_restore_GetLastEntries.sql") '01c_restore_GetLastEntries.sql' | Out-Null
             Invoke-Script (Get-Script "$archive\01b_archive_gpx_tables.sql")    '01b_archive_gpx_tables.sql'    | Out-Null
             Write-Host "`nArchive done. Re-import the project, delete db\Fitness\src\archive, build, commit." -ForegroundColor Green
+        }
+
+        'DataFix' {
+            $src = Get-Script (Join-Path $root 'tables\00_fix_duration_data.sql')
+            $run = if ($Apply) { New-ScriptCopy $src @{ 'DECLARE @Apply\s+bit\s*=\s*0;' = 'DECLARE @Apply bit = 1;' } } else { $src }
+            Invoke-Script $run 'tables\00_fix_duration_data.sql' | Out-Null
+            if ($Apply) { Write-Host "`nData corrected. Next: -Phase Duration (preview)." -ForegroundColor Green }
+            else { Write-Host "`nPreview only. Review the rows in the log, then run again with -Apply." -ForegroundColor Green }
         }
 
         'Duration' {

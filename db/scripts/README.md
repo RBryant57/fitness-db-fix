@@ -11,7 +11,8 @@ Scripts and reference files for the Fitness database clean-up. Nothing here is p
 | (originals) | The pre-fix procedures and functions are in the baseline commit, under `db/Fitness/src/dbo/StoredProcedures` and `Functions` |
 | `archive/CHANGELOG.md`, `archive/README.md` | Every change per object; archive run order |
 | `tables/` | Definitions of the nine activity tables with computed durations, and a `rebuild_<Table>.sql` for each |
-| `views/` | Revised report views (Duration hh:mm:ss, exact pace, no divide-by-zero) |
+| `views/` | The eight revised report views (Duration hh:mm:ss, exact pace, no divide-by-zero) |
+| `fixes/` | `S2_missedmiles_date_default.sql` (S2) and `O1-O3_database_settings.sql` (Query Store, then compatibility level 170) |
 
 Run order on staging first (`-S .\DEVELOPMENT`), then production (`-S .`):
 
@@ -19,9 +20,11 @@ Run order on staging first (`-S .\DEVELOPMENT`), then production (`-S .`):
 2. `archive/scripts/00c_test_procedure_fixes.sql` (check the summary), then `00b_apply_procedure_fixes.sql`
 3. `archive/scripts/01_move_to_archive_schema.sql` (moves every procedure except `GetLastEntries`), then `01b_archive_gpx_tables.sql`.
    On staging, where an earlier 01 already archived `GetLastEntries`, run `01c_restore_GetLastEntries.sql` once to move it back.
-4. Revised views (`views/`), then `tables/rebuild_<Table>.sql` for each table (preview, then `@Apply = 1`)
-5. `archive/scripts/04_permissions.sql` once the API has its own identity
-6. After the quarantine period: `03_drop_archived_objects.sql`, `03b_drop_gpx_tables.sql`
+4. `tables/00_fix_duration_data.sql` (preview, then `@Apply = 1`): end times from the stored durations, no negative rest,
+   six walk distances from GPS. Then the revised views (`views/`), then `tables/rebuild_<Table>.sql` for each table (preview, then `@Apply = 1`)
+5. `fixes/S2_missedmiles_date_default.sql`; `fixes/O1-O3_database_settings.sql` with `@Step = 1`, then a few days later `@Step = 2`
+6. `archive/scripts/04_permissions.sql` once the API has its own identity
+7. After the quarantine period: `03_drop_archived_objects.sql`, `03b_drop_gpx_tables.sql`
 
 After each step: re-import the project from the database (or make the same edit), build, commit.
 
@@ -34,6 +37,7 @@ cd db\scripts
 .\Run-FitnessScripts.ps1 -Phase Audit
 .\Run-FitnessScripts.ps1 -Phase Test                       # stops on FIXED-ERROR / UNEXPECTED-DIFF / FAIL
 .\Run-FitnessScripts.ps1 -Phase Archive                    # 00b, 01, 01c, 01b
+.\Run-FitnessScripts.ps1 -Phase DataFix [-Apply]          # data corrections before the rebuild
 .\Run-FitnessScripts.ps1 -Phase Duration                   # views + rebuild preview
 .\Run-FitnessScripts.ps1 -Phase Duration -Apply            # views + rebuild
 .\Run-FitnessScripts.ps1 -Phase Permissions -ServiceUser 'IIS APPPOOL\<Pool>' [-Apply]

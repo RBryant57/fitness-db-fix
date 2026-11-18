@@ -1,4 +1,6 @@
 -- dbo.TrainingRides (report view read by the API)
+-- Revised 2026-11-17: Duration is now the table's computed time(0) column, not text.
+--   API: the report-model property changes from string to TimeSpan (serialized as "hh:mm:ss").
 -- Revised 2026-10-21.
 --   * Hours / Minutes / Seconds are replaced by one column, Duration, text in the form hh:mm:ss computed from
 --     StartTime and EndTime (rides of 100 hours or more show more hour digits). The RideTimeHours/Minutes/Seconds
@@ -20,9 +22,7 @@ SELECT tr.Id,
        tr.[Date]                                                   AS [Ride Date],
        tr.StartTime                                                AS [Starting Time],
        tr.EndTime                                                  AS [Ending Time],
-       CONCAT(CASE WHEN d.Secs / 3600 < 10 THEN '0' ELSE '' END, d.Secs / 3600, ':',
-              RIGHT(CONCAT('0', d.Secs % 3600 / 60), 2), ':',
-              RIGHT(CONCAT('0', d.Secs % 60), 2))                  AS Duration,
+       tr.Duration,
        tr.EndOdometer - tr.StartOdometer                           AS [Stated Distance],
        tr.Distance,
        (tr.EndOdometer - tr.StartOdometer) * 1.0 / NULLIF(d.Secs, 0) * 3600 AS Speed,

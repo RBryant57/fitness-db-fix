@@ -1,16 +1,42 @@
-CREATE VIEW dbo.TrainingRuns
+-- dbo.TrainingRuns (report view read by the API)
+-- Revised 2026-11-17: Duration is now the table's computed time(0) column, not text.
+--   API: the report-model property changes from string to TimeSpan (serialized as "hh:mm:ss").
+-- Revised 2026-11-11, following views/TrainingRides.sql.
+--   * Hours / Minutes / Seconds are replaced by Duration, text hh:mm:ss computed from StartTime and EndTime (S5). API:
+--     replace those report-model properties with a string Duration.
+--   * Speed and Pace keep their fractions (V1) and return NULL instead of failing the whole view when a row has zero
+--     duration or zero distance (V2). Pace used to divide by 60 (int); it now divides by 60.0 like the other views.
+--   * Other columns keep their names and order.
+CREATE VIEW [dbo].[TrainingRuns]
 AS
-SELECT        dbo.TrainingRun.Id, dbo.TrainingRun.Date AS [Run Date], dbo.TrainingRun.StartTime AS [Starting Time], dbo.TrainingRun.EndTime AS [Ending Time], dbo.TrainingRun.RunTimeHours AS Hours, 
-                         dbo.TrainingRun.RunTimeMinutes AS Minutes, dbo.TrainingRun.RunTimeSeconds AS Seconds, dbo.TrainingRun.Distance, dbo.TrainingRun.Distance / DATEDIFF(second, dbo.TrainingRun.StartTime, dbo.TrainingRun.EndTime) 
-                         * 3600 AS Speed, DATEDIFF(second, dbo.TrainingRun.StartTime, dbo.TrainingRun.EndTime) / dbo.TrainingRun.Distance / 60 AS Pace, dbo.TrainingRun.MaxSpeed AS [Maximum Speed], 
-                         dbo.TrainingRun.AverageHR AS [Average HR], dbo.TrainingRun.MaxHR AS [Maximum HR], dbo.TrainingRun.ElevationGain AS [Elevation Gain], dbo.TrainingRun.WindSpeed AS [Wind Speed], 
-                         dbo.TrainingRun.WindDirection AS [Wind Direction], dbo.TrainingRun.Temperature, dbo.TrainingRun.Precipitation, dbo.Shoe.Name AS [Shoe Name], dbo.ShoeType.Name AS [Shoe Type], dbo.Route.Name AS [Route Name], 
-                         dbo.Route.City, dbo.Route.State, dbo.RouteType.Name AS [Route Type], COALESCE (dbo.TrainingRun.Notes, '') AS Notes, CASE WHEN dbo.TrainingRun.GpxJsonId IS NULL THEN 'No' ELSE 'Yes' END AS [GPX?]
-FROM            dbo.TrainingRun INNER JOIN
-                         dbo.Route ON dbo.TrainingRun.RouteId = dbo.Route.Id INNER JOIN
-                         dbo.RouteType ON dbo.Route.TypeId = dbo.RouteType.Id INNER JOIN
-                         dbo.Shoe ON dbo.TrainingRun.ShoeId = dbo.Shoe.Id INNER JOIN
-                         dbo.ShoeType ON dbo.Shoe.ShoeTypeId = dbo.ShoeType.Id
-
+SELECT tr.Id,
+       tr.[Date]                                                    AS [Run Date],
+       tr.StartTime                                                 AS [Starting Time],
+       tr.EndTime                                                   AS [Ending Time],
+       tr.Duration,
+       tr.Distance,
+       tr.Distance / NULLIF(d.Secs, 0) * 3600                       AS Speed,
+       CAST(d.Secs AS decimal(12, 2)) / NULLIF(tr.Distance, 0) / 60.0 AS Pace,
+       tr.MaxSpeed                                                  AS [Maximum Speed],
+       tr.AverageHR                                                 AS [Average HR],
+       tr.MaxHR                                                     AS [Maximum HR],
+       tr.ElevationGain                                             AS [Elevation Gain],
+       tr.WindSpeed                                                 AS [Wind Speed],
+       tr.WindDirection                                             AS [Wind Direction],
+       tr.Temperature,
+       tr.Precipitation,
+       s.Name                                                       AS [Shoe Name],
+       st.Name                                                      AS [Shoe Type],
+       r.Name                                                       AS [Route Name],
+       r.City,
+       r.State,
+       rt.Name                                                      AS [Route Type],
+       COALESCE(tr.Notes, '')                                       AS Notes,
+       CASE WHEN tr.GpxJsonId IS NULL THEN 'No' ELSE 'Yes' END      AS [GPX?]
+FROM dbo.TrainingRun AS tr
+CROSS APPLY (SELECT DATEDIFF(second, tr.StartTime, tr.EndTime) AS Secs) AS d
+INNER JOIN dbo.Route     AS r  ON r.Id  = tr.RouteId
+INNER JOIN dbo.RouteType AS rt ON rt.Id = r.TypeId
+INNER JOIN dbo.Shoe      AS s  ON s.Id  = tr.ShoeId
+INNER JOIN dbo.ShoeType  AS st ON st.Id = s.ShoeTypeId;
 GO
-

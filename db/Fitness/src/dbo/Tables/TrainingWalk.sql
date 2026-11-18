@@ -1,32 +1,34 @@
-CREATE TABLE [dbo].[TrainingWalk] (
-    [Id]                INT             IDENTITY (1, 1) NOT NULL,
-    [Date]              DATETIME        NOT NULL,
-    [Distance]          DECIMAL (9, 4)  NOT NULL,
-    [StartTime]         DATETIME        NOT NULL,
-    [EndTime]           DATETIME        NOT NULL,
-    [WalkTimeHours]     INT             NOT NULL,
-    [WalkTimeMinutes]   INT             NOT NULL,
-    [WalkTimeSeconds]   INT             NOT NULL,
-    [AverageHR]         INT             NOT NULL,
-    [MaxHR]             INT             NOT NULL,
-    [ElevationGain]     INT             NOT NULL,
-    [MaxSpeed]          DECIMAL (9, 4)  CONSTRAINT [DF_TrainingWalk_MaxSpeed] DEFAULT ((3)) NOT NULL,
-    [WindSpeed]         INT             NOT NULL,
-    [WindDirection]     NVARCHAR (3)    NOT NULL,
-    [Temperature]       INT             NOT NULL,
-    [Precipitation]     BIT             NOT NULL,
-    [ShoeId]            INT             CONSTRAINT [DF_TrainingWalk_ShoeId] DEFAULT ((2)) NOT NULL,
-    [RouteId]           INT             NOT NULL,
-    [NumberOfAttempts]  INT             CONSTRAINT [DF_TrainingWalk_NumberOfAttempts] DEFAULT ((0)) NOT NULL,
-    [NumberOfSuccesses] INT             CONSTRAINT [DF_TrainingWalk_NumberOfSuccesses] DEFAULT ((0)) NOT NULL,
-    [GpxJsonId]         INT             NULL,
-    [Notes]             NVARCHAR (4000) NULL,
-    CONSTRAINT [PK_TrainingWalk] PRIMARY KEY CLUSTERED ([Id] ASC),
-    CONSTRAINT [FK_TrainingWalk_GpxJson] FOREIGN KEY ([GpxJsonId]) REFERENCES [dbo].[GpxJson] ([Id]) ON DELETE CASCADE,
-    CONSTRAINT [FK_TrainingWalk_Route] FOREIGN KEY ([RouteId]) REFERENCES [dbo].[Route] ([Id]),
-    CONSTRAINT [FK_TrainingWalk_Shoe] FOREIGN KEY ([ShoeId]) REFERENCES [dbo].[Shoe] ([Id])
+﻿-- dbo.TrainingWalk after the S5 rebuild: computed durations (time(0)) follow their end times.
+-- Removed: WalkTimeHours, WalkTimeMinutes, WalkTimeSeconds.
+-- Removed with them: no constraints or defaults.
+-- Computed (not stored), time(0), shown as hh:mm:ss: Duration (StartTime to EndTime).
+-- Everything else is unchanged from the dacpac (types, constraint names, defaults).
+CREATE TABLE dbo.TrainingWalk
+(
+    Id                 int            IDENTITY(1, 1) NOT NULL,
+    [Date]             datetime       NOT NULL,
+    Distance           decimal(9, 4)  NOT NULL,
+    StartTime          datetime       NOT NULL,
+    EndTime            datetime       NOT NULL,
+    Duration           AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, EndTime), 0), 0),
+    AverageHR          int            NOT NULL,
+    MaxHR              int            NOT NULL,
+    ElevationGain      int            NOT NULL,
+    MaxSpeed           decimal(9, 4)  NOT NULL CONSTRAINT DF_TrainingWalk_MaxSpeed DEFAULT ((3)),
+    WindSpeed          int            NOT NULL,
+    WindDirection      nvarchar(3)    NOT NULL,
+    Temperature        int            NOT NULL,
+    Precipitation      bit            NOT NULL,
+    ShoeId             int            NOT NULL CONSTRAINT DF_TrainingWalk_ShoeId DEFAULT ((2)),
+    RouteId            int            NOT NULL,
+    NumberOfAttempts   int            NOT NULL CONSTRAINT DF_TrainingWalk_NumberOfAttempts DEFAULT ((0)),
+    NumberOfSuccesses  int            NOT NULL CONSTRAINT DF_TrainingWalk_NumberOfSuccesses DEFAULT ((0)),
+    GpxJsonId          int            NULL,
+    Notes              nvarchar(4000) NULL,
+
+    CONSTRAINT PK_TrainingWalk PRIMARY KEY CLUSTERED (Id),
+    CONSTRAINT FK_TrainingWalk_GpxJson FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
+    CONSTRAINT FK_TrainingWalk_Route FOREIGN KEY (RouteId) REFERENCES dbo.Route (Id),
+    CONSTRAINT FK_TrainingWalk_Shoe FOREIGN KEY (ShoeId) REFERENCES dbo.Shoe (Id)
 );
-
-
 GO
-

@@ -1,18 +1,49 @@
-CREATE VIEW dbo.TrainingRides
+-- dbo.TrainingRides (report view read by the API)
+-- Revised 2026-11-17: Duration is now the table's computed time(0) column, not text.
+--   API: the report-model property changes from string to TimeSpan (serialized as "hh:mm:ss").
+-- Revised 2026-10-21.
+--   * Hours / Minutes / Seconds are replaced by one column, Duration, text in the form hh:mm:ss computed from
+--     StartTime and EndTime (rides of 100 hours or more show more hour digits). The RideTimeHours/Minutes/Seconds
+--     columns are no longer used and can be dropped from dbo.TrainingRide (S5).
+--     API: replace the Hours, Minutes and Seconds properties of the report model with a string Duration.
+--   * Other columns keep their names and order.
+--   * Pace no longer truncates: seconds are cast to decimal before dividing (V1). Values change by up to 1 s/mile.
+--   * Speed and Pace return NULL instead of failing the whole view when a ride has zero duration or zero
+--     odometer distance (V2).
+--   * The join to Manufacturer is removed; nothing was selected from it (V4). Bike.ManufacturerId is NOT NULL with a
+--     foreign key, so the row count is unchanged (the check below confirms it).
+CREATE VIEW [dbo].[TrainingRides]
 AS
-SELECT        dbo.TrainingRide.Id, dbo.TrainingRide.Date AS [Ride Date], dbo.TrainingRide.StartTime AS [Starting Time], dbo.TrainingRide.EndTime AS [Ending Time], dbo.TrainingRide.RideTimeHours AS Hours, 
-                         dbo.TrainingRide.RideTimeMinutes AS Minutes, dbo.TrainingRide.RideTimeSeconds AS Seconds, dbo.TrainingRide.EndOdometer - dbo.TrainingRide.StartOdometer AS [Stated Distance], dbo.TrainingRide.Distance, 
-                         (dbo.TrainingRide.EndOdometer - dbo.TrainingRide.StartOdometer) * 1.0 / DATEDIFF(second, dbo.TrainingRide.StartTime, dbo.TrainingRide.EndTime) * 3600 AS Speed, DATEDIFF(second, dbo.TrainingRide.StartTime, 
-                         dbo.TrainingRide.EndTime) / (dbo.TrainingRide.EndOdometer - dbo.TrainingRide.StartOdometer) / 60.0 AS Pace, dbo.TrainingRide.MaxSpeed AS [Maximum Speed], dbo.TrainingRide.AverageHR AS [Average HR], 
-                         dbo.TrainingRide.MaxHR AS [Maximum HR], dbo.TrainingRide.AverageCadence AS [Average Cadence], dbo.TrainingRide.ElevationGain AS [Elevation Gain], dbo.TrainingRide.WindSpeed AS [Wind Speed], 
-                         dbo.TrainingRide.WindDirection AS [Wind Direction], dbo.TrainingRide.Temperature, dbo.TrainingRide.Precipitation, dbo.Bike.Name AS [Bike Name], dbo.BikeType.Name AS [Bike Type], dbo.Route.Name AS [Route Name], 
-                         dbo.Route.City, dbo.Route.State, dbo.RouteType.Name AS [Route Type], COALESCE (dbo.TrainingRide.Notes, '') AS Notes, CASE WHEN dbo.TrainingRide.GpxJsonId IS NULL THEN 'No' ELSE 'Yes' END AS [GPX?]
-FROM            dbo.TrainingRide INNER JOIN
-                         dbo.Bike ON dbo.TrainingRide.BikeId = dbo.Bike.Id INNER JOIN
-                         dbo.BikeType ON dbo.Bike.TypeId = dbo.BikeType.Id INNER JOIN
-                         dbo.Route ON dbo.TrainingRide.RouteId = dbo.Route.Id INNER JOIN
-                         dbo.RouteType ON dbo.Route.TypeId = dbo.RouteType.Id INNER JOIN
-                         dbo.Manufacturer ON dbo.Bike.ManufacturerId = dbo.Manufacturer.Id
-
+SELECT tr.Id,
+       tr.[Date]                                                   AS [Ride Date],
+       tr.StartTime                                                AS [Starting Time],
+       tr.EndTime                                                  AS [Ending Time],
+       tr.Duration,
+       tr.EndOdometer - tr.StartOdometer                           AS [Stated Distance],
+       tr.Distance,
+       (tr.EndOdometer - tr.StartOdometer) * 1.0 / NULLIF(d.Secs, 0) * 3600 AS Speed,
+       CAST(d.Secs AS decimal(12, 2)) / NULLIF(tr.EndOdometer - tr.StartOdometer, 0) / 60.0 AS Pace,
+       tr.MaxSpeed                                                 AS [Maximum Speed],
+       tr.AverageHR                                                AS [Average HR],
+       tr.MaxHR                                                    AS [Maximum HR],
+       tr.AverageCadence                                           AS [Average Cadence],
+       tr.ElevationGain                                            AS [Elevation Gain],
+       tr.WindSpeed                                                AS [Wind Speed],
+       tr.WindDirection                                            AS [Wind Direction],
+       tr.Temperature,
+       tr.Precipitation,
+       b.Name                                                      AS [Bike Name],
+       bt.Name                                                     AS [Bike Type],
+       r.Name                                                      AS [Route Name],
+       r.City,
+       r.State,
+       rt.Name                                                     AS [Route Type],
+       COALESCE(tr.Notes, '')                                      AS Notes,
+       CASE WHEN tr.GpxJsonId IS NULL THEN 'No' ELSE 'Yes' END     AS [GPX?]
+FROM dbo.TrainingRide AS tr
+CROSS APPLY (SELECT DATEDIFF(second, tr.StartTime, tr.EndTime) AS Secs) AS d
+INNER JOIN dbo.Bike      AS b  ON b.Id  = tr.BikeId
+INNER JOIN dbo.BikeType  AS bt ON bt.Id = b.TypeId
+INNER JOIN dbo.Route     AS r  ON r.Id  = tr.RouteId
+INNER JOIN dbo.RouteType AS rt ON rt.Id = r.TypeId;
 GO
-

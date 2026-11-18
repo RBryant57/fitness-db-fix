@@ -1,4 +1,4 @@
--- rebuild_TrainingRide.sql
+﻿-- rebuild_TrainingRide.sql
 -- S5 for dbo.TrainingRide: rebuilds the table so that Duration after EndTime, as in tables/TrainingRide.sql.
 -- The stored RideTimeHours, RideTimeMinutes, RideTimeSeconds columns are not carried over.
 -- ALTER TABLE can only add a column at the end, so placing the computed column after its end time means
@@ -25,6 +25,8 @@
 --
 -- Run order: procedure steps (00c, 00b, 01) -> revised views -> this script (@Apply = 0, then 1) -> deploy the API.
 -- sqlcmd -S <server> -d Fitness -E -I -b -i rebuild_TrainingRide.sql
+-- 2026-11-17: the computed durations are time(0) (were text), and the recreational tables get CK_<Table>_RestNotNegative.
+-- A table already rebuilt with text durations is rebuilt again to change them; one with time(0) is skipped.
 
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -49,8 +51,9 @@ END;
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.TrainingRide') AND name IN (N'RideTimeHours', N'RideTimeMinutes', N'RideTimeSeconds'))
    AND (SELECT TOP (1) c2.name FROM sys.columns c1 JOIN sys.columns c2 ON c2.object_id = c1.object_id AND c2.column_id > c1.column_id WHERE c1.object_id = OBJECT_ID(N'dbo.TrainingRide') AND c1.name = N'EndTime' ORDER BY c2.column_id) = N'Duration'
+   AND (SELECT TYPE_NAME(system_type_id) FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.TrainingRide') AND name = N'Duration') = N'time'
 BEGIN
-    PRINT N'dbo.TrainingRide already has the new layout (Duration after EndTime). Nothing to do.';
+    PRINT N'dbo.TrainingRide already has the new layout (time(0) durations; Duration after EndTime). Nothing to do.';
     RETURN;
 END;
 
@@ -166,6 +169,10 @@ SET @Extra = STUFF((
 IF @Extra IS NOT NULL
     SET @Problems += NCHAR(10) + N'   triggers on the table (they would be lost): ' + @Extra;
 
+-- Check 6: rows the time(0) durations can't show (a negative duration would wrap round to 23:59:xx)
+SELECT @n = COUNT(*) FROM dbo.TrainingRide WHERE EndTime < StartTime;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) where EndTime is before StartTime');
+
 -- Check 3: leftover from an earlier run
 IF OBJECT_ID(N'dbo.TrainingRide_Old', N'U') IS NOT NULL
     SET @Problems += NCHAR(10) + N'   dbo.TrainingRide_Old already exists (left by an earlier run); check it and drop or rename it';
@@ -241,10 +248,7 @@ BEGIN TRY
     Distance           decimal(9, 4)  NULL,
     StartTime          datetime       NOT NULL,
     EndTime            datetime       NOT NULL,
-    Duration           AS CONCAT(CASE WHEN DATEDIFF(second, StartTime, EndTime) / 3600 < 10 THEN ''0'' ELSE '''' END,
-                                 DATEDIFF(second, StartTime, EndTime) / 3600, '':'',
-                                 RIGHT(CONCAT(''0'', DATEDIFF(second, StartTime, EndTime) % 3600 / 60), 2), '':'',
-                                 RIGHT(CONCAT(''0'', DATEDIFF(second, StartTime, EndTime) % 60), 2)),
+    Duration           AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, EndTime), 0), 0),
     AverageHR          int            NOT NULL,
     MaxHR              int            NOT NULL,
     AverageCadence     int            NOT NULL,

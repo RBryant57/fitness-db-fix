@@ -1,4 +1,4 @@
--- rebuild_RecreationalRide.sql
+﻿-- rebuild_RecreationalRide.sql
 -- S5 for dbo.RecreationalRide: rebuilds the table so that Duration after EndTime, BikeDuration after BikeEndTime, RestDuration after BikeDuration, as in tables/RecreationalRide.sql.
 -- The stored RideTimeHours, RideTimeMinutes, RideTimeSeconds, BikeTimeHours, BikeTimeMinutes, BikeTimeSeconds columns are not carried over.
 -- ALTER TABLE can only add a column at the end, so placing the computed column after its end time means
@@ -25,6 +25,8 @@
 --
 -- Run order: procedure steps (00c, 00b, 01) -> revised views -> this script (@Apply = 0, then 1) -> deploy the API.
 -- sqlcmd -S <server> -d Fitness -E -I -b -i rebuild_RecreationalRide.sql
+-- 2026-11-17: the computed durations are time(0) (were text), and the recreational tables get CK_<Table>_RestNotNegative.
+-- A table already rebuilt with text durations is rebuilt again to change them; one with time(0) is skipped.
 
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -49,8 +51,10 @@ END;
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.RecreationalRide') AND name IN (N'RideTimeHours', N'RideTimeMinutes', N'RideTimeSeconds', N'BikeTimeHours', N'BikeTimeMinutes', N'BikeTimeSeconds'))
    AND (SELECT TOP (1) c2.name FROM sys.columns c1 JOIN sys.columns c2 ON c2.object_id = c1.object_id AND c2.column_id > c1.column_id WHERE c1.object_id = OBJECT_ID(N'dbo.RecreationalRide') AND c1.name = N'EndTime' ORDER BY c2.column_id) = N'Duration' AND (SELECT TOP (1) c2.name FROM sys.columns c1 JOIN sys.columns c2 ON c2.object_id = c1.object_id AND c2.column_id > c1.column_id WHERE c1.object_id = OBJECT_ID(N'dbo.RecreationalRide') AND c1.name = N'BikeEndTime' ORDER BY c2.column_id) = N'BikeDuration' AND (SELECT TOP (1) c2.name FROM sys.columns c1 JOIN sys.columns c2 ON c2.object_id = c1.object_id AND c2.column_id > c1.column_id WHERE c1.object_id = OBJECT_ID(N'dbo.RecreationalRide') AND c1.name = N'BikeDuration' ORDER BY c2.column_id) = N'RestDuration'
+   AND (SELECT TYPE_NAME(system_type_id) FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.RecreationalRide') AND name = N'Duration') = N'time'
+   AND OBJECT_ID(N'dbo.CK_RecreationalRide_RestNotNegative', N'C') IS NOT NULL
 BEGIN
-    PRINT N'dbo.RecreationalRide already has the new layout (Duration after EndTime, BikeDuration after BikeEndTime, RestDuration after BikeDuration). Nothing to do.';
+    PRINT N'dbo.RecreationalRide already has the new layout (time(0) durations; Duration after EndTime, BikeDuration after BikeEndTime, RestDuration after BikeDuration). Nothing to do.';
     RETURN;
 END;
 
@@ -181,6 +185,12 @@ SET @Extra = STUFF((
 IF @Extra IS NOT NULL
     SET @Problems += NCHAR(10) + N'   triggers on the table (they would be lost): ' + @Extra;
 
+-- Check 6: rows the time(0) durations can't show (a negative duration would wrap round to 23:59:xx)
+SELECT @n = COUNT(*) FROM dbo.RecreationalRide WHERE EndTime < StartTime;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) where EndTime is before StartTime');
+SELECT @n = COUNT(*) FROM dbo.RecreationalRide WHERE BikeEndTime > EndTime;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalRide_RestNotNegative (BikeEndTime is after EndTime; run tables/00_fix_duration_data.sql)');
+
 -- Check 3: leftover from an earlier run
 IF OBJECT_ID(N'dbo.RecreationalRide_Old', N'U') IS NOT NULL
     SET @Problems += NCHAR(10) + N'   dbo.RecreationalRide_Old already exists (left by an earlier run); check it and drop or rename it';
@@ -256,19 +266,10 @@ BEGIN TRY
     Distance         decimal(9, 4)  NULL,
     StartTime        datetime       NOT NULL,
     EndTime          datetime       NOT NULL,
-    Duration         AS CONCAT(CASE WHEN DATEDIFF(second, StartTime, EndTime) / 3600 < 10 THEN ''0'' ELSE '''' END,
-                               DATEDIFF(second, StartTime, EndTime) / 3600, '':'',
-                               RIGHT(CONCAT(''0'', DATEDIFF(second, StartTime, EndTime) % 3600 / 60), 2), '':'',
-                               RIGHT(CONCAT(''0'', DATEDIFF(second, StartTime, EndTime) % 60), 2)),
+    Duration         AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, EndTime), 0), 0),
     BikeEndTime      datetime       NOT NULL,
-    BikeDuration     AS CONCAT(CASE WHEN DATEDIFF(second, StartTime, BikeEndTime) / 3600 < 10 THEN ''0'' ELSE '''' END,
-                               DATEDIFF(second, StartTime, BikeEndTime) / 3600, '':'',
-                               RIGHT(CONCAT(''0'', DATEDIFF(second, StartTime, BikeEndTime) % 3600 / 60), 2), '':'',
-                               RIGHT(CONCAT(''0'', DATEDIFF(second, StartTime, BikeEndTime) % 60), 2)),
-    RestDuration     AS CONCAT(CASE WHEN DATEDIFF(second, BikeEndTime, EndTime) < 0 THEN ''-'' ELSE '''' END,
-                               CASE WHEN ABS(DATEDIFF(second, BikeEndTime, EndTime)) / 3600 < 10 THEN ''0'' ELSE '''' END, ABS(DATEDIFF(second, BikeEndTime, EndTime)) / 3600, '':'',
-                               RIGHT(CONCAT(''0'', ABS(DATEDIFF(second, BikeEndTime, EndTime)) % 3600 / 60), 2), '':'',
-                               RIGHT(CONCAT(''0'', ABS(DATEDIFF(second, BikeEndTime, EndTime)) % 60), 2)),
+    BikeDuration     AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, BikeEndTime), 0), 0),
+    RestDuration     AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, BikeEndTime, EndTime), 0), 0),
     AverageHR        int            NOT NULL,
     MaxHR            int            NOT NULL,
     AverageCadence   int            NOT NULL,
@@ -291,7 +292,8 @@ BEGIN TRY
     CONSTRAINT CK_EndRecOdometer CHECK (EndOdometer>(0)),
     CONSTRAINT CK_MaxRecHR CHECK (MaxHR>(0) AND MaxHR<(220)),
     CONSTRAINT CK_RideRecMiles CHECK (EndOdometer>StartOdometer),
-    CONSTRAINT CK_StartRecOdometer CHECK (StartOdometer>(0))
+    CONSTRAINT CK_StartRecOdometer CHECK (StartOdometer>(0)),
+    CONSTRAINT CK_RecreationalRide_RestNotNegative CHECK (BikeEndTime <= EndTime)
 );');
 
     -- 4. Copy the rows, keep the identity seed, drop the old table
