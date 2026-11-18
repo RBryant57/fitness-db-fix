@@ -235,7 +235,7 @@ BEGIN TRY
     ShoeId          int            NOT NULL,
     Notes           nvarchar(4000) NULL,
 
-    CONSTRAINT PK_Treadmill PRIMARY KEY CLUSTERED (Id),
+    CONSTRAINT PK_TreadmillRun PRIMARY KEY CLUSTERED (Id),
     CONSTRAINT FK_TreadmillRun_Shoe FOREIGN KEY (ShoeId) REFERENCES dbo.Shoe (Id)
 );');
 

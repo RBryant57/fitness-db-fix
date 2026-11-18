@@ -4,8 +4,8 @@ CREATE TABLE [dbo].[LiftingSession] (
     [CircuitId]    INT             NOT NULL,
     [NumberOfSets] INT             NOT NULL,
     [Notes]        NVARCHAR (4000) NULL,
-    CONSTRAINT [PK_LiftSession] PRIMARY KEY CLUSTERED ([Id] ASC),
-    CONSTRAINT [FK_LiftSession_Circuit] FOREIGN KEY ([CircuitId]) REFERENCES [dbo].[Circuit] ([Id])
+    CONSTRAINT [PK_LiftingSession] PRIMARY KEY CLUSTERED ([Id] ASC),
+    CONSTRAINT [FK_LiftingSession_Circuit] FOREIGN KEY ([CircuitId]) REFERENCES [dbo].[Circuit] ([Id])
 );
 
 

@@ -8,7 +8,7 @@ CREATE TABLE [dbo].[RouteType] (
 
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UNIQUE_EnumId]
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_RouteType_EnumId]
     ON [dbo].[RouteType]([EnumId] ASC);
 
 

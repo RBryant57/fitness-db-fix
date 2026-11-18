@@ -28,7 +28,7 @@ CREATE TABLE dbo.RecreationalWalk
     Notes            nvarchar(4000) NULL,
 
     CONSTRAINT PK_RecreationalWalk PRIMARY KEY CLUSTERED (Id),
-    CONSTRAINT FK_RecreationalWalk_GpxJsonId FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
+    CONSTRAINT FK_RecreationalWalk_GpxJson FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
     CONSTRAINT FK_RecreationalWalk_Route FOREIGN KEY (RouteId) REFERENCES dbo.Route (Id),
     CONSTRAINT FK_RecreationalWalk_Shoe FOREIGN KEY (ShoeId) REFERENCES dbo.Shoe (Id),
     CONSTRAINT CK_RecreationalWalk_RestNotNegative CHECK (PathEndTime <= EndTime)

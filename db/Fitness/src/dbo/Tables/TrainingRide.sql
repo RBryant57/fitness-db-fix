@@ -34,12 +34,12 @@ CREATE TABLE dbo.TrainingRide
     CONSTRAINT FK_TrainingRide_Bike FOREIGN KEY (BikeId) REFERENCES dbo.Bike (Id),
     CONSTRAINT FK_TrainingRide_GpxJson FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
     CONSTRAINT FK_TrainingRide_Route FOREIGN KEY (RouteId) REFERENCES dbo.Route (Id),
-    CONSTRAINT CK_AverageCadence CHECK (AverageCadence>(0) AND AverageCadence<(200)),
-    CONSTRAINT CK_AverageHR CHECK (AverageHR>(0) AND AverageHR<(220)),
-    CONSTRAINT CK_EndOdometer CHECK (EndOdometer>(0)),
-    CONSTRAINT CK_MaxHR CHECK (MaxHR>(0) AND MaxHR<(220)),
-    CONSTRAINT CK_RideMiles CHECK (EndOdometer>StartOdometer),
-    CONSTRAINT CK_StartOdometer CHECK (StartOdometer>=(0)),
-    CONSTRAINT CK_WindSpeed CHECK (WindSpeed>=(0))
+    CONSTRAINT CK_TrainingRide_AverageCadence CHECK (AverageCadence>(0) AND AverageCadence<(200)),
+    CONSTRAINT CK_TrainingRide_AverageHR CHECK (AverageHR>(0) AND AverageHR<(220)),
+    CONSTRAINT CK_TrainingRide_EndOdometer CHECK (EndOdometer>(0)),
+    CONSTRAINT CK_TrainingRide_MaxHR CHECK (MaxHR>(0) AND MaxHR<(220)),
+    CONSTRAINT CK_TrainingRide_Miles CHECK (EndOdometer>StartOdometer),
+    CONSTRAINT CK_TrainingRide_StartOdometer CHECK (StartOdometer>=(0)),
+    CONSTRAINT CK_TrainingRide_WindSpeed CHECK (WindSpeed>=(0))
 );
 GO

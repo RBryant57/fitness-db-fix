@@ -9,7 +9,7 @@ CREATE TABLE [dbo].[Manufacturer] (
 
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UNIQUE_Manufacturer_Name]
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_Manufacturer_Name]
     ON [dbo].[Manufacturer]([Name] ASC) WITH (ALLOW_PAGE_LOCKS = OFF);
 
 

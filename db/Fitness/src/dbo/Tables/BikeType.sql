@@ -8,7 +8,7 @@ CREATE TABLE [dbo].[BikeType] (
 
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UNIQUE_EnumId]
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_BikeType_EnumId]
     ON [dbo].[BikeType]([EnumId] ASC);
 
 

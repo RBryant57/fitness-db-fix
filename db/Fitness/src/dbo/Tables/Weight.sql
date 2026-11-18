@@ -10,7 +10,7 @@ CREATE TABLE [dbo].[Weight] (
 
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UNIQUE_Date]
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_Weight_Date]
     ON [dbo].[Weight]([Date] ASC);
 
 

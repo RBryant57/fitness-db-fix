@@ -13,7 +13,7 @@ CREATE TABLE [dbo].[BikePart] (
 
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UNIQUE_BikePart]
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_BikePart_BikeId_PartId_OdometerReading]
     ON [dbo].[BikePart]([BikeId] ASC, [PartId] ASC, [OdometerReading] ASC) WITH (ALLOW_PAGE_LOCKS = OFF);
 
 

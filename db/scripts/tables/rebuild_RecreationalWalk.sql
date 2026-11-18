@@ -110,7 +110,7 @@ IF @Users IS NOT NULL
 
 -- Check 4: rows the new table's constraints would reject (some foreign keys were never checked on old rows)
 SELECT @n = COUNT(*) FROM dbo.RecreationalWalk AS t WHERE t.GpxJsonId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.GpxJson AS p WHERE p.Id = t.GpxJsonId);
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break FK_RecreationalWalk_GpxJsonId (GpxJsonId has no matching dbo.GpxJson row)');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break FK_RecreationalWalk_GpxJson (GpxJsonId has no matching dbo.GpxJson row)');
 SELECT @n = COUNT(*) FROM dbo.RecreationalWalk AS t WHERE t.RouteId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Route AS p WHERE p.Id = t.RouteId);
 IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break FK_RecreationalWalk_Route (RouteId has no matching dbo.Route row)');
 SELECT @n = COUNT(*) FROM dbo.RecreationalWalk AS t WHERE t.ShoeId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Shoe AS p WHERE p.Id = t.ShoeId);
@@ -269,7 +269,7 @@ BEGIN TRY
     Notes            nvarchar(4000) NULL,
 
     CONSTRAINT PK_RecreationalWalk PRIMARY KEY CLUSTERED (Id),
-    CONSTRAINT FK_RecreationalWalk_GpxJsonId FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
+    CONSTRAINT FK_RecreationalWalk_GpxJson FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
     CONSTRAINT FK_RecreationalWalk_Route FOREIGN KEY (RouteId) REFERENCES dbo.Route (Id),
     CONSTRAINT FK_RecreationalWalk_Shoe FOREIGN KEY (ShoeId) REFERENCES dbo.Shoe (Id),
     CONSTRAINT CK_RecreationalWalk_RestNotNegative CHECK (PathEndTime <= EndTime)

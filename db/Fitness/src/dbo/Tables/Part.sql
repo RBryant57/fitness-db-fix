@@ -13,7 +13,7 @@ CREATE TABLE [dbo].[Part] (
 
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UNIQUE_Part]
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_Part_ManufacturerId_PartTypeId_Name]
     ON [dbo].[Part]([ManufacturerId] ASC, [PartTypeId] ASC, [Name] ASC) WITH (ALLOW_PAGE_LOCKS = OFF);
 
 

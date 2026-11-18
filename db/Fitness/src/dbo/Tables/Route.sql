@@ -8,13 +8,13 @@ CREATE TABLE [dbo].[Route] (
     [Notes]  NVARCHAR (4000) NULL,
     CONSTRAINT [PK_Route] PRIMARY KEY CLUSTERED ([Id] ASC),
     CONSTRAINT [CK_Route_Name] CHECK (NOT [Name] like ''),
-    CONSTRAINT [FK_Route_Type] FOREIGN KEY ([TypeId]) REFERENCES [dbo].[RouteType] ([Id])
+    CONSTRAINT [FK_Route_RouteType] FOREIGN KEY ([TypeId]) REFERENCES [dbo].[RouteType] ([Id])
 );
 
 
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UNIQUE_Route_Name]
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_Route_Name]
     ON [dbo].[Route]([Name] ASC) WITH (ALLOW_PAGE_LOCKS = OFF);
 
 

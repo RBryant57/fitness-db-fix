@@ -9,7 +9,7 @@ CREATE TABLE [dbo].[PartType] (
 
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UNIQUE_PartType_Name]
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_PartType_Name]
     ON [dbo].[PartType]([Name] ASC);
 
 

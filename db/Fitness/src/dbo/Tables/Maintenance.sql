@@ -14,7 +14,7 @@ CREATE TABLE [dbo].[Maintenance] (
 
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UNIQUE_Maintenance]
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_Maintenance_BikeId_PartId_ActionTaken_Odometer]
     ON [dbo].[Maintenance]([BikeId] ASC, [PartId] ASC, [ActionTaken] ASC, [Odometer] ASC) WITH (ALLOW_PAGE_LOCKS = OFF);
 
 

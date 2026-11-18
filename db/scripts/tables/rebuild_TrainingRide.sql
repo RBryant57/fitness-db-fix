@@ -98,19 +98,19 @@ IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break FK_Trai
 SELECT @n = COUNT(*) FROM dbo.TrainingRide AS t WHERE t.RouteId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Route AS p WHERE p.Id = t.RouteId);
 IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break FK_TrainingRide_Route (RouteId has no matching dbo.Route row)');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TrainingRide WHERE NOT (AverageCadence>(0) AND AverageCadence<(200));', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_AverageCadence: AverageCadence>(0) AND AverageCadence<(200)');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TrainingRide_AverageCadence: AverageCadence>(0) AND AverageCadence<(200)');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TrainingRide WHERE NOT (AverageHR>(0) AND AverageHR<(220));', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_AverageHR: AverageHR>(0) AND AverageHR<(220)');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TrainingRide_AverageHR: AverageHR>(0) AND AverageHR<(220)');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TrainingRide WHERE NOT (EndOdometer>(0));', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_EndOdometer: EndOdometer>(0)');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TrainingRide_EndOdometer: EndOdometer>(0)');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TrainingRide WHERE NOT (MaxHR>(0) AND MaxHR<(220));', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_MaxHR: MaxHR>(0) AND MaxHR<(220)');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TrainingRide_MaxHR: MaxHR>(0) AND MaxHR<(220)');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TrainingRide WHERE NOT (EndOdometer>StartOdometer);', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RideMiles: EndOdometer>StartOdometer');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TrainingRide_Miles: EndOdometer>StartOdometer');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TrainingRide WHERE NOT (StartOdometer>=(0));', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_StartOdometer: StartOdometer>=(0)');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TrainingRide_StartOdometer: StartOdometer>=(0)');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TrainingRide WHERE NOT (WindSpeed>=(0));', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_WindSpeed: WindSpeed>=(0)');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TrainingRide_WindSpeed: WindSpeed>=(0)');
 
 -- Check 5: columns or triggers on the live table that tables/TrainingRide.sql doesn't have, and indexes that can't be carried over
 DECLARE @Extra nvarchar(2000) = STUFF((
@@ -269,13 +269,13 @@ BEGIN TRY
     CONSTRAINT FK_TrainingRide_Bike FOREIGN KEY (BikeId) REFERENCES dbo.Bike (Id),
     CONSTRAINT FK_TrainingRide_GpxJson FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
     CONSTRAINT FK_TrainingRide_Route FOREIGN KEY (RouteId) REFERENCES dbo.Route (Id),
-    CONSTRAINT CK_AverageCadence CHECK (AverageCadence>(0) AND AverageCadence<(200)),
-    CONSTRAINT CK_AverageHR CHECK (AverageHR>(0) AND AverageHR<(220)),
-    CONSTRAINT CK_EndOdometer CHECK (EndOdometer>(0)),
-    CONSTRAINT CK_MaxHR CHECK (MaxHR>(0) AND MaxHR<(220)),
-    CONSTRAINT CK_RideMiles CHECK (EndOdometer>StartOdometer),
-    CONSTRAINT CK_StartOdometer CHECK (StartOdometer>=(0)),
-    CONSTRAINT CK_WindSpeed CHECK (WindSpeed>=(0))
+    CONSTRAINT CK_TrainingRide_AverageCadence CHECK (AverageCadence>(0) AND AverageCadence<(200)),
+    CONSTRAINT CK_TrainingRide_AverageHR CHECK (AverageHR>(0) AND AverageHR<(220)),
+    CONSTRAINT CK_TrainingRide_EndOdometer CHECK (EndOdometer>(0)),
+    CONSTRAINT CK_TrainingRide_MaxHR CHECK (MaxHR>(0) AND MaxHR<(220)),
+    CONSTRAINT CK_TrainingRide_Miles CHECK (EndOdometer>StartOdometer),
+    CONSTRAINT CK_TrainingRide_StartOdometer CHECK (StartOdometer>=(0)),
+    CONSTRAINT CK_TrainingRide_WindSpeed CHECK (WindSpeed>=(0))
 );');
 
     -- 4. Copy the rows, keep the identity seed, drop the old table

@@ -4,7 +4,7 @@
 -- Computed (not stored), time(0), shown as hh:mm:ss: Duration (StartTime to EndTime), PathDuration (StartTime to PathEndTime), RestDuration (PathEndTime to EndTime).
 -- Check CK_RecreationalWalk_RestNotNegative: PathEndTime may not be after EndTime (rest time cannot be negative).
 -- Everything else is unchanged from the dacpac (types, constraint names, defaults).
--- In the dacpac these foreign keys are not trusted (created WITH NOCHECK): FK_RecreationalWalk_GpxJsonId, FK_RecreationalWalk_Route, FK_RecreationalWalk_Shoe.
+-- In the dacpac these foreign keys are not trusted (created WITH NOCHECK): FK_RecreationalWalk_GpxJson, FK_RecreationalWalk_Route, FK_RecreationalWalk_Shoe.
 SET ANSI_NULLS ON;
 GO
 SET QUOTED_IDENTIFIER ON;
@@ -33,7 +33,7 @@ CREATE TABLE dbo.RecreationalWalk
     Notes            nvarchar(4000) NULL,
 
     CONSTRAINT PK_RecreationalWalk PRIMARY KEY CLUSTERED (Id),
-    CONSTRAINT FK_RecreationalWalk_GpxJsonId FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
+    CONSTRAINT FK_RecreationalWalk_GpxJson FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
     CONSTRAINT FK_RecreationalWalk_Route FOREIGN KEY (RouteId) REFERENCES dbo.Route (Id),
     CONSTRAINT FK_RecreationalWalk_Shoe FOREIGN KEY (ShoeId) REFERENCES dbo.Shoe (Id),
     CONSTRAINT CK_RecreationalWalk_RestNotNegative CHECK (PathEndTime <= EndTime)

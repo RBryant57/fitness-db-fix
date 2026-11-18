@@ -10,7 +10,7 @@ CREATE TABLE [dbo].[CircuitsComponents] (
 
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UNIQUE_CircuitId_CircuitComponentId]
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_CircuitsComponents_CircuitId_CircuitComponentId]
     ON [dbo].[CircuitsComponents]([CircuitId] ASC, [CircuitComponentId] ASC);
 
 

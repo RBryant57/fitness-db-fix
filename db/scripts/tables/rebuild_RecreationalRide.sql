@@ -116,17 +116,17 @@ IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break FK_Recr
 SELECT @n = COUNT(*) FROM dbo.RecreationalRide AS t WHERE t.RouteId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Route AS p WHERE p.Id = t.RouteId);
 IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break FK_RecreationalRide_Route (RouteId has no matching dbo.Route row)');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalRide WHERE NOT (AverageCadence>(0) AND AverageCadence<(200));', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_AverageRecCadence: AverageCadence>(0) AND AverageCadence<(200)');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalRide_AverageCadence: AverageCadence>(0) AND AverageCadence<(200)');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalRide WHERE NOT (AverageHR>(0) AND AverageHR<(220));', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_AverageRecHR: AverageHR>(0) AND AverageHR<(220)');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalRide_AverageHR: AverageHR>(0) AND AverageHR<(220)');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalRide WHERE NOT (EndOdometer>(0));', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_EndRecOdometer: EndOdometer>(0)');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalRide_EndOdometer: EndOdometer>(0)');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalRide WHERE NOT (MaxHR>(0) AND MaxHR<(220));', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_MaxRecHR: MaxHR>(0) AND MaxHR<(220)');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalRide_MaxHR: MaxHR>(0) AND MaxHR<(220)');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalRide WHERE NOT (EndOdometer>StartOdometer);', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RideRecMiles: EndOdometer>StartOdometer');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalRide_Miles: EndOdometer>StartOdometer');
 EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalRide WHERE NOT (StartOdometer>(0));', N'@n int OUTPUT', @n = @n OUTPUT;
-IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_StartRecOdometer: StartOdometer>(0)');
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalRide_StartOdometer: StartOdometer>(0)');
 
 -- Check 5: columns or triggers on the live table that tables/RecreationalRide.sql doesn't have, and indexes that can't be carried over
 DECLARE @Extra nvarchar(2000) = STUFF((
@@ -287,12 +287,12 @@ BEGIN TRY
     CONSTRAINT FK_RecreationalRide_Bike FOREIGN KEY (BikeId) REFERENCES dbo.Bike (Id),
     CONSTRAINT FK_RecreationalRide_GpxJson FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
     CONSTRAINT FK_RecreationalRide_Route FOREIGN KEY (RouteId) REFERENCES dbo.Route (Id),
-    CONSTRAINT CK_AverageRecCadence CHECK (AverageCadence>(0) AND AverageCadence<(200)),
-    CONSTRAINT CK_AverageRecHR CHECK (AverageHR>(0) AND AverageHR<(220)),
-    CONSTRAINT CK_EndRecOdometer CHECK (EndOdometer>(0)),
-    CONSTRAINT CK_MaxRecHR CHECK (MaxHR>(0) AND MaxHR<(220)),
-    CONSTRAINT CK_RideRecMiles CHECK (EndOdometer>StartOdometer),
-    CONSTRAINT CK_StartRecOdometer CHECK (StartOdometer>(0)),
+    CONSTRAINT CK_RecreationalRide_AverageCadence CHECK (AverageCadence>(0) AND AverageCadence<(200)),
+    CONSTRAINT CK_RecreationalRide_AverageHR CHECK (AverageHR>(0) AND AverageHR<(220)),
+    CONSTRAINT CK_RecreationalRide_EndOdometer CHECK (EndOdometer>(0)),
+    CONSTRAINT CK_RecreationalRide_MaxHR CHECK (MaxHR>(0) AND MaxHR<(220)),
+    CONSTRAINT CK_RecreationalRide_Miles CHECK (EndOdometer>StartOdometer),
+    CONSTRAINT CK_RecreationalRide_StartOdometer CHECK (StartOdometer>(0)),
     CONSTRAINT CK_RecreationalRide_RestNotNegative CHECK (BikeEndTime <= EndTime)
 );');
 

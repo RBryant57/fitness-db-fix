@@ -8,7 +8,7 @@ CREATE TABLE [dbo].[CircuitComponent] (
 
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UNIQUE_ExerciseName]
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_CircuitComponent_ExerciseName]
     ON [dbo].[CircuitComponent]([ExerciseName] ASC);
 
 

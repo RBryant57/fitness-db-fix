@@ -8,7 +8,7 @@ CREATE TABLE [dbo].[Circuit] (
 
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UNIQUE_Name]
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_Circuit_Name]
     ON [dbo].[Circuit]([Name] ASC);
 
 

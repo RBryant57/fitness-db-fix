@@ -7,7 +7,7 @@ CREATE TABLE [dbo].[HRZoneTime] (
     [ZoneSeconds] INT NOT NULL,
     CONSTRAINT [PK_HRZoneTime] PRIMARY KEY CLUSTERED ([Id] ASC),
     CONSTRAINT [FK_HRZoneTime_HRZones] FOREIGN KEY ([ZoneId]) REFERENCES [dbo].[HRZones] ([Id]),
-    CONSTRAINT [FK_HRZoneTime_TrainingRides] FOREIGN KEY ([RideId]) REFERENCES [dbo].[TrainingRide] ([Id])
+    CONSTRAINT [FK_HRZoneTime_TrainingRide] FOREIGN KEY ([RideId]) REFERENCES [dbo].[TrainingRide] ([Id])
 );
 
 

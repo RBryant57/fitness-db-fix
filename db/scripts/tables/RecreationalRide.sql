@@ -40,12 +40,12 @@ CREATE TABLE dbo.RecreationalRide
     CONSTRAINT FK_RecreationalRide_Bike FOREIGN KEY (BikeId) REFERENCES dbo.Bike (Id),
     CONSTRAINT FK_RecreationalRide_GpxJson FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
     CONSTRAINT FK_RecreationalRide_Route FOREIGN KEY (RouteId) REFERENCES dbo.Route (Id),
-    CONSTRAINT CK_AverageRecCadence CHECK (AverageCadence>(0) AND AverageCadence<(200)),
-    CONSTRAINT CK_AverageRecHR CHECK (AverageHR>(0) AND AverageHR<(220)),
-    CONSTRAINT CK_EndRecOdometer CHECK (EndOdometer>(0)),
-    CONSTRAINT CK_MaxRecHR CHECK (MaxHR>(0) AND MaxHR<(220)),
-    CONSTRAINT CK_RideRecMiles CHECK (EndOdometer>StartOdometer),
-    CONSTRAINT CK_StartRecOdometer CHECK (StartOdometer>(0)),
+    CONSTRAINT CK_RecreationalRide_AverageCadence CHECK (AverageCadence>(0) AND AverageCadence<(200)),
+    CONSTRAINT CK_RecreationalRide_AverageHR CHECK (AverageHR>(0) AND AverageHR<(220)),
+    CONSTRAINT CK_RecreationalRide_EndOdometer CHECK (EndOdometer>(0)),
+    CONSTRAINT CK_RecreationalRide_MaxHR CHECK (MaxHR>(0) AND MaxHR<(220)),
+    CONSTRAINT CK_RecreationalRide_Miles CHECK (EndOdometer>StartOdometer),
+    CONSTRAINT CK_RecreationalRide_StartOdometer CHECK (StartOdometer>(0)),
     CONSTRAINT CK_RecreationalRide_RestNotNegative CHECK (BikeEndTime <= EndTime)
 );
 GO
