@@ -1,6 +1,6 @@
 CREATE TABLE [dbo].[LiftingSession] (
     [Id]           INT             IDENTITY (1, 1) NOT NULL,
-    [Date]         DATETIME        NOT NULL,
+    [Date]         DATE            NOT NULL,
     [CircuitId]    INT             NOT NULL,
     [NumberOfSets] INT             NOT NULL,
     [Notes]        NVARCHAR (4000) NULL,
@@ -11,3 +11,14 @@ CREATE TABLE [dbo].[LiftingSession] (
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_LiftingSession_CircuitId]
+    ON [dbo].[LiftingSession]([CircuitId] ASC);
+
+
+GO
+
+CREATE NONCLUSTERED INDEX [IX_LiftingSession_Date]
+    ON [dbo].[LiftingSession]([Date] ASC);
+
+
+GO

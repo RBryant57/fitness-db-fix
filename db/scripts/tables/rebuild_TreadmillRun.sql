@@ -1,4 +1,5 @@
 ﻿-- rebuild_TreadmillRun.sql
+-- 2026-11-18: [Date] is date and the times are datetime2(0) (S13); the S7 checks are included; the S11 defaults (ShoeId, MaxSpeed) are removed.
 -- S5 for dbo.TreadmillRun: rebuilds the table so that Duration after EndTime, as in tables/TreadmillRun.sql.
 -- The stored RunTimeHours, RunTimeMinutes, RunTimeSeconds columns are not carried over.
 -- ALTER TABLE can only add a column at the end, so placing the computed column after its end time means
@@ -52,6 +53,7 @@ END;
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.TreadmillRun') AND name IN (N'RunTimeHours', N'RunTimeMinutes', N'RunTimeSeconds'))
    AND (SELECT TOP (1) c2.name FROM sys.columns c1 JOIN sys.columns c2 ON c2.object_id = c1.object_id AND c2.column_id > c1.column_id WHERE c1.object_id = OBJECT_ID(N'dbo.TreadmillRun') AND c1.name = N'EndTime' ORDER BY c2.column_id) = N'Duration'
    AND (SELECT TYPE_NAME(system_type_id) FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.TreadmillRun') AND name = N'Duration') = N'time'
+   AND (SELECT TYPE_NAME(system_type_id) FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.TreadmillRun') AND name = N'StartTime') = N'datetime2'
 BEGIN
     PRINT N'dbo.TreadmillRun already has the new layout (time(0) durations; Duration after EndTime). Nothing to do.';
     RETURN;
@@ -155,6 +157,26 @@ IF @Extra IS NOT NULL
 SELECT @n = COUNT(*) FROM dbo.TreadmillRun WHERE EndTime < StartTime;
 IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) where EndTime is before StartTime');
 
+-- S7 checks in the new table: rows that would break one (the copy would fail)
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TreadmillRun WHERE NOT ([AverageHR]>=(0) AND [AverageHR]<=(250));', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TreadmillRun_AverageHR: ([AverageHR]>=(0) AND [AverageHR]<=(250))');
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TreadmillRun WHERE NOT ([MaxHR]>=(0) AND [MaxHR]<=(250));', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TreadmillRun_MaxHR: ([MaxHR]>=(0) AND [MaxHR]<=(250))');
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TreadmillRun WHERE NOT ([MaxHR]>=[AverageHR]);', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TreadmillRun_MaxHRAboveAverage: ([MaxHR]>=[AverageHR])');
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TreadmillRun WHERE NOT ([EndTime]>[StartTime]);', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TreadmillRun_Times: ([EndTime]>[StartTime])');
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TreadmillRun WHERE NOT ([Distance]>(0));', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TreadmillRun_Distance: ([Distance]>(0))');
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TreadmillRun WHERE NOT ([ElevationGain]>=(0));', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_TreadmillRun_ElevationGain: ([ElevationGain]>=(0))');
+-- S13: a time of day in [Date] is dropped when it becomes date (StartTime keeps the time)
+IF (SELECT TYPE_NAME(system_type_id) FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.TreadmillRun') AND name = N'Date') = N'datetime'
+BEGIN
+    EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.TreadmillRun WHERE CONVERT(time, [Date]) <> CONVERT(time, ''00:00'');', N'@n int OUTPUT', @n = @n OUTPUT;
+    IF @n > 0 PRINT CONCAT(N'Note: ', @n, N' row(s) have a time of day in [Date]; it is dropped (StartTime keeps it).');
+END;
+
 -- Check 3: leftover from an earlier run
 IF OBJECT_ID(N'dbo.TreadmillRun_Old', N'U') IS NOT NULL
     SET @Problems += NCHAR(10) + N'   dbo.TreadmillRun_Old already exists (left by an earlier run); check it and drop or rename it';
@@ -224,10 +246,10 @@ BEGIN TRY
     EXEC (N'CREATE TABLE dbo.TreadmillRun
 (
     Id              int            IDENTITY(1, 1) NOT NULL,
-    [Date]          datetime       NOT NULL,
+    [Date]          date           NOT NULL,
     Distance        decimal(9, 4)  NOT NULL,
-    StartTime       datetime       NOT NULL,
-    EndTime         datetime       NOT NULL,
+    StartTime       datetime2(0)   NOT NULL,
+    EndTime         datetime2(0)   NOT NULL,
     Duration        AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, EndTime), 0), 0),
     AverageHR       int            NOT NULL,
     MaxHR           int            NOT NULL,
@@ -236,7 +258,13 @@ BEGIN TRY
     Notes           nvarchar(4000) NULL,
 
     CONSTRAINT PK_TreadmillRun PRIMARY KEY CLUSTERED (Id),
-    CONSTRAINT FK_TreadmillRun_Shoe FOREIGN KEY (ShoeId) REFERENCES dbo.Shoe (Id)
+    CONSTRAINT FK_TreadmillRun_Shoe FOREIGN KEY (ShoeId) REFERENCES dbo.Shoe (Id),
+    CONSTRAINT CK_TreadmillRun_AverageHR CHECK ([AverageHR]>=(0) AND [AverageHR]<=(250)),
+    CONSTRAINT CK_TreadmillRun_MaxHR CHECK ([MaxHR]>=(0) AND [MaxHR]<=(250)),
+    CONSTRAINT CK_TreadmillRun_MaxHRAboveAverage CHECK ([MaxHR]>=[AverageHR]),
+    CONSTRAINT CK_TreadmillRun_Times CHECK ([EndTime]>[StartTime]),
+    CONSTRAINT CK_TreadmillRun_Distance CHECK ([Distance]>(0)),
+    CONSTRAINT CK_TreadmillRun_ElevationGain CHECK ([ElevationGain]>=(0))
 );');
 
     -- 4. Copy the rows, keep the identity seed, drop the old table

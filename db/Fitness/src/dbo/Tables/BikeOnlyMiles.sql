@@ -1,6 +1,6 @@
 CREATE TABLE [dbo].[BikeOnlyMiles] (
     [Id]            INT             IDENTITY (1, 1) NOT NULL,
-    [Date]          DATETIME        NOT NULL,
+    [Date]          DATE            NOT NULL,
     [StartOdometer] INT             NOT NULL,
     [EndOdometer]   INT             NOT NULL,
     [BikeId]        INT             NOT NULL,
@@ -12,3 +12,8 @@ CREATE TABLE [dbo].[BikeOnlyMiles] (
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_BikeOnlyMiles_BikeId]
+    ON [dbo].[BikeOnlyMiles]([BikeId] ASC);
+
+
+GO

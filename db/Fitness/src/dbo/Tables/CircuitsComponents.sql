@@ -16,3 +16,8 @@ CREATE UNIQUE NONCLUSTERED INDEX [UQ_CircuitsComponents_CircuitId_CircuitCompone
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_CircuitsComponents_CircuitComponentId]
+    ON [dbo].[CircuitsComponents]([CircuitComponentId] ASC);
+
+
+GO

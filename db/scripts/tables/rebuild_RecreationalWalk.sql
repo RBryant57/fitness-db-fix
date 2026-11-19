@@ -1,4 +1,5 @@
 ﻿-- rebuild_RecreationalWalk.sql
+-- 2026-11-18: [Date] is date and the times are datetime2(0) (S13); the S7 checks are included; the S11 defaults (ShoeId, MaxSpeed) are removed.
 -- S5 for dbo.RecreationalWalk: rebuilds the table so that Duration after EndTime, PathDuration after PathEndTime, RestDuration after PathDuration, as in tables/RecreationalWalk.sql.
 -- The stored WalkTimeHours, WalkTimeMinutes, WalkTimeSeconds, PathTimeHours, PathTimeMinutes, PathTimeSeconds columns are not carried over.
 -- ALTER TABLE can only add a column at the end, so placing the computed column after its end time means
@@ -52,6 +53,7 @@ END;
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.RecreationalWalk') AND name IN (N'WalkTimeHours', N'WalkTimeMinutes', N'WalkTimeSeconds', N'PathTimeHours', N'PathTimeMinutes', N'PathTimeSeconds'))
    AND (SELECT TOP (1) c2.name FROM sys.columns c1 JOIN sys.columns c2 ON c2.object_id = c1.object_id AND c2.column_id > c1.column_id WHERE c1.object_id = OBJECT_ID(N'dbo.RecreationalWalk') AND c1.name = N'EndTime' ORDER BY c2.column_id) = N'Duration' AND (SELECT TOP (1) c2.name FROM sys.columns c1 JOIN sys.columns c2 ON c2.object_id = c1.object_id AND c2.column_id > c1.column_id WHERE c1.object_id = OBJECT_ID(N'dbo.RecreationalWalk') AND c1.name = N'PathEndTime' ORDER BY c2.column_id) = N'PathDuration' AND (SELECT TOP (1) c2.name FROM sys.columns c1 JOIN sys.columns c2 ON c2.object_id = c1.object_id AND c2.column_id > c1.column_id WHERE c1.object_id = OBJECT_ID(N'dbo.RecreationalWalk') AND c1.name = N'PathDuration' ORDER BY c2.column_id) = N'RestDuration'
    AND (SELECT TYPE_NAME(system_type_id) FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.RecreationalWalk') AND name = N'Duration') = N'time'
+   AND (SELECT TYPE_NAME(system_type_id) FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.RecreationalWalk') AND name = N'StartTime') = N'datetime2'
    AND OBJECT_ID(N'dbo.CK_RecreationalWalk_RestNotNegative', N'C') IS NOT NULL
 BEGIN
     PRINT N'dbo.RecreationalWalk already has the new layout (time(0) durations; Duration after EndTime, PathDuration after PathEndTime, RestDuration after PathDuration). Nothing to do.';
@@ -179,6 +181,28 @@ IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) where EndTime
 SELECT @n = COUNT(*) FROM dbo.RecreationalWalk WHERE PathEndTime > EndTime;
 IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalWalk_RestNotNegative (PathEndTime is after EndTime; run tables/00_fix_duration_data.sql)');
 
+-- S7 checks in the new table: rows that would break one (the copy would fail)
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalWalk WHERE NOT ([AverageHR]>=(0) AND [AverageHR]<=(250));', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalWalk_AverageHR: ([AverageHR]>=(0) AND [AverageHR]<=(250))');
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalWalk WHERE NOT ([MaxHR]>=(0) AND [MaxHR]<=(250));', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalWalk_MaxHR: ([MaxHR]>=(0) AND [MaxHR]<=(250))');
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalWalk WHERE NOT ([MaxHR]>=[AverageHR]);', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalWalk_MaxHRAboveAverage: ([MaxHR]>=[AverageHR])');
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalWalk WHERE NOT ([EndTime]>[StartTime]);', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalWalk_Times: ([EndTime]>[StartTime])');
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalWalk WHERE NOT ([Distance]>(0));', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalWalk_Distance: ([Distance]>(0))');
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalWalk WHERE NOT ([ElevationGain]>=(0));', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalWalk_ElevationGain: ([ElevationGain]>=(0))');
+EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalWalk WHERE NOT ([Temperature]>=(-60) AND [Temperature]<=(140));', N'@n int OUTPUT', @n = @n OUTPUT;
+IF @n > 0 SET @Problems += CONCAT(NCHAR(10), N'   ', @n, N' row(s) break CK_RecreationalWalk_Temperature: ([Temperature]>=(-60) AND [Temperature]<=(140))');
+-- S13: a time of day in [Date] is dropped when it becomes date (StartTime keeps the time)
+IF (SELECT TYPE_NAME(system_type_id) FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.RecreationalWalk') AND name = N'Date') = N'datetime'
+BEGIN
+    EXEC sp_executesql N'SELECT @n = COUNT(*) FROM dbo.RecreationalWalk WHERE CONVERT(time, [Date]) <> CONVERT(time, ''00:00'');', N'@n int OUTPUT', @n = @n OUTPUT;
+    IF @n > 0 PRINT CONCAT(N'Note: ', @n, N' row(s) have a time of day in [Date]; it is dropped (StartTime keeps it).');
+END;
+
 -- Check 3: leftover from an earlier run
 IF OBJECT_ID(N'dbo.RecreationalWalk_Old', N'U') IS NOT NULL
     SET @Problems += NCHAR(10) + N'   dbo.RecreationalWalk_Old already exists (left by an earlier run); check it and drop or rename it';
@@ -248,18 +272,18 @@ BEGIN TRY
     EXEC (N'CREATE TABLE dbo.RecreationalWalk
 (
     Id               int            IDENTITY(1, 1) NOT NULL,
-    [Date]           datetime       NOT NULL,
+    [Date]           date           NOT NULL,
     Distance         decimal(9, 4)  NOT NULL,
-    StartTime        datetime       NOT NULL,
-    EndTime          datetime       NOT NULL,
+    StartTime        datetime2(0)   NOT NULL,
+    EndTime          datetime2(0)   NOT NULL,
     Duration         AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, EndTime), 0), 0),
-    PathEndTime      datetime       NOT NULL,
+    PathEndTime      datetime2(0)   NOT NULL,
     PathDuration     AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, PathEndTime), 0), 0),
     RestDuration     AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, PathEndTime, EndTime), 0), 0),
     AverageHR        int            NOT NULL,
     MaxHR            int            NOT NULL,
     ElevationGain    int            NOT NULL,
-    MaxSpeed         decimal(9, 4)  NOT NULL CONSTRAINT DF_RecreationalWalk_MaxSpeed DEFAULT ((3)),
+    MaxSpeed         decimal(9, 4)  NOT NULL,
     Wind             nvarchar(255)  NOT NULL,
     Temperature      int            NOT NULL,
     Precipitation    bit            NOT NULL,
@@ -272,7 +296,14 @@ BEGIN TRY
     CONSTRAINT FK_RecreationalWalk_GpxJson FOREIGN KEY (GpxJsonId) REFERENCES dbo.GpxJson (Id) ON DELETE CASCADE,
     CONSTRAINT FK_RecreationalWalk_Route FOREIGN KEY (RouteId) REFERENCES dbo.Route (Id),
     CONSTRAINT FK_RecreationalWalk_Shoe FOREIGN KEY (ShoeId) REFERENCES dbo.Shoe (Id),
-    CONSTRAINT CK_RecreationalWalk_RestNotNegative CHECK (PathEndTime <= EndTime)
+    CONSTRAINT CK_RecreationalWalk_RestNotNegative CHECK (PathEndTime <= EndTime),
+    CONSTRAINT CK_RecreationalWalk_AverageHR CHECK ([AverageHR]>=(0) AND [AverageHR]<=(250)),
+    CONSTRAINT CK_RecreationalWalk_MaxHR CHECK ([MaxHR]>=(0) AND [MaxHR]<=(250)),
+    CONSTRAINT CK_RecreationalWalk_MaxHRAboveAverage CHECK ([MaxHR]>=[AverageHR]),
+    CONSTRAINT CK_RecreationalWalk_Times CHECK ([EndTime]>[StartTime]),
+    CONSTRAINT CK_RecreationalWalk_Distance CHECK ([Distance]>(0)),
+    CONSTRAINT CK_RecreationalWalk_ElevationGain CHECK ([ElevationGain]>=(0)),
+    CONSTRAINT CK_RecreationalWalk_Temperature CHECK ([Temperature]>=(-60) AND [Temperature]<=(140))
 );');
 
     -- 4. Copy the rows, keep the identity seed, drop the old table

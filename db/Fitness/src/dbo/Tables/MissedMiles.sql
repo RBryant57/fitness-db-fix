@@ -1,6 +1,6 @@
 CREATE TABLE [dbo].[MissedMiles] (
     [Id]             INT             IDENTITY (1, 1) NOT NULL,
-    [Date]           DATETIME        CONSTRAINT [DF_MissedMiles_Date] DEFAULT (CONVERT([date],getdate())) NOT NULL,
+    [Date]           DATE            CONSTRAINT [DF_MissedMiles_Date] DEFAULT (CONVERT([date],getdate())) NOT NULL,
     [Miles]          DECIMAL (18, 2) NOT NULL,
     [ExerciseTypeId] INT             NOT NULL,
     [Notes]          NVARCHAR (4000) NULL,
@@ -11,3 +11,8 @@ CREATE TABLE [dbo].[MissedMiles] (
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_MissedMiles_ExerciseTypeId]
+    ON [dbo].[MissedMiles]([ExerciseTypeId] ASC);
+
+
+GO

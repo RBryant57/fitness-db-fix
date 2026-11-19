@@ -19,3 +19,8 @@ CREATE UNIQUE NONCLUSTERED INDEX [UQ_Part_ManufacturerId_PartTypeId_Name]
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_Part_PartTypeId]
+    ON [dbo].[Part]([PartTypeId] ASC);
+
+
+GO

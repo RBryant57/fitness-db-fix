@@ -3,8 +3,8 @@ CREATE TABLE [dbo].[Shoe] (
     [Name]            NVARCHAR (50)   NOT NULL,
     [ManufacturerId]  INT             NOT NULL,
     [ShoeTypeId]      INT             NOT NULL,
-    [AcquisitionDate] DATETIME        NOT NULL,
-    [RetireDate]      DATETIME        NULL,
+    [AcquisitionDate] DATE            NOT NULL,
+    [RetireDate]      DATE            NULL,
     [Notes]           NVARCHAR (4000) NULL,
     CONSTRAINT [PK_Shoe] PRIMARY KEY CLUSTERED ([Id] ASC),
     CONSTRAINT [FK_Shoe_Manufacturer] FOREIGN KEY ([ManufacturerId]) REFERENCES [dbo].[Manufacturer] ([Id]),
@@ -14,3 +14,14 @@ CREATE TABLE [dbo].[Shoe] (
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_Shoe_ManufacturerId]
+    ON [dbo].[Shoe]([ManufacturerId] ASC);
+
+
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Shoe_ShoeTypeId]
+    ON [dbo].[Shoe]([ShoeTypeId] ASC);
+
+
+GO

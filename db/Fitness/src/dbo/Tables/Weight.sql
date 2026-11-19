@@ -1,6 +1,6 @@
 CREATE TABLE [dbo].[Weight] (
     [Id]                INT             IDENTITY (1, 1) NOT NULL,
-    [Date]              DATETIME        NOT NULL,
+    [Date]              DATE            NOT NULL,
     [Weight]            DECIMAL (4, 1)  NOT NULL,
     [BodyFatPercentage] DECIMAL (4, 2)  NOT NULL,
     [Notes]             NVARCHAR (4000) NULL,

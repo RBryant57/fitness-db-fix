@@ -17,6 +17,7 @@
       Duration     views\*.sql                                 revised report views
                    tables\rebuild_<Table>.sql (nine tables)    preview only, unless -Apply
       Permissions  04_permissions.sql                          preview only, unless -Apply; needs -ServiceUser
+      Fix          fixes\<Script>.sql                          one script from db\scripts\fixes; preview unless -Apply
       Drop         03_drop_archived_objects.sql                final removal after the quarantine period
                    03b_drop_gpx_tables.sql
       Rollback     02b_rollback_gpx_archive.sql, 02_rollback_archive.sql   undo Archive
@@ -33,12 +34,15 @@
 .EXAMPLE
     .\Run-FitnessScripts.ps1 -Phase Permissions -ServiceUser 'IIS APPPOOL\FitnessApi' -Apply
 .EXAMPLE
+    .\Run-FitnessScripts.ps1 -Phase Fix -Script S8_indexes            # preview
+    .\Run-FitnessScripts.ps1 -Phase Fix -Script S8_indexes -Apply
+.EXAMPLE
     .\Run-FitnessScripts.ps1 -Phase Archive -Server . -Production
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('Audit', 'Test', 'Archive', 'DataFix', 'Duration', 'Permissions', 'Drop', 'Rollback')]
+    [ValidateSet('Audit', 'Test', 'Archive', 'DataFix', 'Duration', 'Permissions', 'Fix', 'Drop', 'Rollback')]
     [string]$Phase,
 
     [string]$Server = '.\DEVELOPMENT',
@@ -49,6 +53,9 @@ param(
 
     # Database user the .NET service connects as (Permissions phase).
     [string]$ServiceUser,
+
+    # Fix phase: the script in db\scripts\fixes to run, without .sql (e.g. S8_indexes).
+    [string]$Script,
 
     # Duration phase: rebuild even where stored durations differ from StartTime/EndTime.
     [switch]$DropEvenIfDisagree,
@@ -197,6 +204,16 @@ try {
             if ($Apply) { $set['DECLARE @Apply\s+bit\s*=\s*0;'] = 'DECLARE @Apply       bit     = 1;' }
             Invoke-Script (New-ScriptCopy (Get-Script "$archive\04_permissions.sql") $set) '04_permissions.sql' | Out-Null
             if (-not $Apply) { Write-Host "`nPreview only. Review the statements in the log, then run again with -Apply." -ForegroundColor Green }
+        }
+
+        'Fix' {
+            if (-not $Script) { throw '-Script is required: the name of a script in db\scripts\fixes, e.g. -Script S8_indexes.' }
+            $src = Get-Script (Join-Path $root "fixes\$($Script -replace '\.sql$', '').sql")
+            $hasApply = [regex]::IsMatch([IO.File]::ReadAllText($src), 'DECLARE @Apply\s+bit\s*=\s*0;')
+            if ($Apply -and -not $hasApply) { throw "$Script has no @Apply setting; run it without -Apply." }
+            $run = if ($Apply) { New-ScriptCopy $src @{ 'DECLARE @Apply\s+bit\s*=\s*0;' = 'DECLARE @Apply bit = 1;' } } else { $src }
+            Invoke-Script $run "fixes\$(Split-Path $src -Leaf)" | Out-Null
+            if ($hasApply -and -not $Apply) { Write-Host "`nPreview only. Review the output, then run again with -Apply." -ForegroundColor Green }
         }
 
         'Drop' {

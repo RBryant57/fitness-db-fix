@@ -10,3 +10,8 @@ CREATE TABLE [dbo].[BenchmarkMiles] (
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_BenchmarkMiles_BikeId]
+    ON [dbo].[BenchmarkMiles]([BikeId] ASC);
+
+
+GO

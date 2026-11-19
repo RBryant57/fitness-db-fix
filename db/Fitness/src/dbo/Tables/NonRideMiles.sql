@@ -12,3 +12,8 @@ CREATE TABLE [dbo].[NonRideMiles] (
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_NonRideMiles_BikeId]
+    ON [dbo].[NonRideMiles]([BikeId] ASC);
+
+
+GO

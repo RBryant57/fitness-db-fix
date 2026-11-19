@@ -1,9 +1,9 @@
 CREATE TABLE [dbo].[Bike] (
     [Id]              INT             IDENTITY (1, 1) NOT NULL,
-    [Name]            VARCHAR (50)    NOT NULL,
+    [Name]            NVARCHAR (50)   NOT NULL,
     [ManufacturerId]  INT             NOT NULL,
     [TypeId]          INT             NOT NULL,
-    [AcquisitionDate] DATETIME        NOT NULL,
+    [AcquisitionDate] DATE            NOT NULL,
     [BaseMiles]       INT             NOT NULL,
     [Notes]           NVARCHAR (4000) NULL,
     CONSTRAINT [PK_Bike] PRIMARY KEY CLUSTERED ([Id] ASC),
@@ -21,3 +21,14 @@ CREATE UNIQUE NONCLUSTERED INDEX [UQ_Bike_Name]
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_Bike_TypeId]
+    ON [dbo].[Bike]([TypeId] ASC);
+
+
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Bike_ManufacturerId]
+    ON [dbo].[Bike]([ManufacturerId] ASC);
+
+
+GO

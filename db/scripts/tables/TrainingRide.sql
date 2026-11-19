@@ -1,4 +1,5 @@
 ﻿-- dbo.TrainingRide, as defined in production (dacpac extracted 2026-10-21) with the S5 change applied.
+-- 2026-11-18: [Date] is date and the times are datetime2(0) (S13); the S7 checks are included; the S11 defaults (ShoeId, MaxSpeed) are removed.
 -- Removed: RideTimeHours, RideTimeMinutes, RideTimeSeconds.
 -- Removed with them: CK_RideTimeHours, CK_RideTimeMinutes, CK_RideTimeSeconds, DF_TrainingRide_RideTimeHours, DF_TrainingRide_RideTimeMinutes, DF_TrainingRide_RideTimeSeconds.
 -- Computed (not stored), time(0), shown as hh:mm:ss: Duration (StartTime to EndTime).
@@ -12,18 +13,18 @@ GO
 CREATE TABLE dbo.TrainingRide
 (
     Id                 int            IDENTITY(1, 1) NOT NULL,
-    [Date]             datetime       NOT NULL,
+    [Date]             date           NOT NULL,
     StartOdometer      int            NOT NULL,
     EndOdometer        int            NOT NULL,
     Distance           decimal(9, 4)  NULL,
-    StartTime          datetime       NOT NULL,
-    EndTime            datetime       NOT NULL,
+    StartTime          datetime2(0)   NOT NULL,
+    EndTime            datetime2(0)   NOT NULL,
     Duration           AS CONVERT(time(0), DATEADD(second, DATEDIFF(second, StartTime, EndTime), 0), 0),
     AverageHR          int            NOT NULL,
     MaxHR              int            NOT NULL,
     AverageCadence     int            NOT NULL,
     ElevationGain      int            NOT NULL,
-    MaxSpeed           decimal(9, 4)  NOT NULL CONSTRAINT DF_TrainingRide_MaxSpeed DEFAULT ((20)),
+    MaxSpeed           decimal(9, 4)  NOT NULL,
     WindSpeed          int            NOT NULL,
     WindDirection      nvarchar(3)    NOT NULL,
     Temperature        int            NOT NULL,
@@ -45,7 +46,12 @@ CREATE TABLE dbo.TrainingRide
     CONSTRAINT CK_TrainingRide_MaxHR CHECK (MaxHR>(0) AND MaxHR<(220)),
     CONSTRAINT CK_TrainingRide_Miles CHECK (EndOdometer>StartOdometer),
     CONSTRAINT CK_TrainingRide_StartOdometer CHECK (StartOdometer>=(0)),
-    CONSTRAINT CK_TrainingRide_WindSpeed CHECK (WindSpeed>=(0))
+    CONSTRAINT CK_TrainingRide_WindSpeed CHECK (WindSpeed>=(0)),
+    CONSTRAINT CK_TrainingRide_MaxHRAboveAverage CHECK ([MaxHR]>=[AverageHR]),
+    CONSTRAINT CK_TrainingRide_Times CHECK ([EndTime]>[StartTime]),
+    CONSTRAINT CK_TrainingRide_Distance CHECK ([Distance] IS NULL OR [Distance]>(0)),
+    CONSTRAINT CK_TrainingRide_ElevationGain CHECK ([ElevationGain]>=(0)),
+    CONSTRAINT CK_TrainingRide_Temperature CHECK ([Temperature]>=(-60) AND [Temperature]<=(140))
 );
 GO
 

@@ -3,7 +3,7 @@ CREATE TABLE [dbo].[Route] (
     [Name]   NVARCHAR (50)   NOT NULL,
     [City]   NVARCHAR (50)   NOT NULL,
     [State]  CHAR (2)        NOT NULL,
-    [TypeId] INT             CONSTRAINT [DF_Route_TypeId] DEFAULT ((1)) NOT NULL,
+    [TypeId] INT             NOT NULL,
     [Rating] INT             CONSTRAINT [DF_Route_Rating] DEFAULT ((5)) NOT NULL,
     [Notes]  NVARCHAR (4000) NULL,
     CONSTRAINT [PK_Route] PRIMARY KEY CLUSTERED ([Id] ASC),
@@ -20,3 +20,8 @@ CREATE UNIQUE NONCLUSTERED INDEX [UQ_Route_Name]
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_Route_TypeId]
+    ON [dbo].[Route]([TypeId] ASC);
+
+
+GO

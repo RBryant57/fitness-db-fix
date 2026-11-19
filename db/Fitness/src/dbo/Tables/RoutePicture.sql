@@ -10,3 +10,8 @@ CREATE TABLE [dbo].[RoutePicture] (
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_RoutePicture_RouteId]
+    ON [dbo].[RoutePicture]([RouteId] ASC);
+
+
+GO

@@ -3,7 +3,7 @@ CREATE TABLE [dbo].[Maintenance] (
     [BikeId]      INT             NOT NULL,
     [PartId]      INT             NOT NULL,
     [ActionTaken] NVARCHAR (50)   NOT NULL,
-    [Date]        DATETIME        NOT NULL,
+    [Date]        DATE            NOT NULL,
     [Odometer]    INT             NOT NULL,
     [Notes]       NVARCHAR (4000) NULL,
     CONSTRAINT [PK_Maintenance] PRIMARY KEY CLUSTERED ([Id] ASC),
@@ -20,3 +20,8 @@ CREATE UNIQUE NONCLUSTERED INDEX [UQ_Maintenance_BikeId_PartId_ActionTaken_Odome
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_Maintenance_PartId]
+    ON [dbo].[Maintenance]([PartId] ASC);
+
+
+GO
