@@ -5,7 +5,7 @@ Scripts and reference files for the Fitness database clean-up. Nothing here is p
 
 | Folder | Contents |
 |---|---|
-| `archive/scripts/` | 00 usage audit, 00c test + 00b apply procedure fixes, 01 archive procedures, 01b archive legacy GPX tables, 01c restore GetLastEntries, 02/02b rollback, 03/03b final drops, 04 permissions |
+| `archive/scripts/` | 00 usage audit, 00c test + 00b apply procedure fixes, 01 archive procedures, 01b archive legacy GPX tables, 01c restore GetLastEntries, 02/02b rollback, 04 permissions, 05 copy `[archive]` to the FitnessArchive database, 06 drop `[archive]` from Fitness (03/03b, the old final drops, are superseded by 05/06) |
 | `procedures/` | Live stored procedures that stay in the database: `GetLastEntries.sql` (the API uses it; it is not archived) |
 | `archive/procedures/`, `archive/functions/` | Fixed versions of the 111 archived procedures and 5 functions (reference after archiving) |
 | (originals) | The pre-fix procedures and functions are in the baseline commit, under `db/Fitness/src/dbo/StoredProcedures` and `Functions` |
@@ -34,7 +34,12 @@ Run order on staging first (`-S .\DEVELOPMENT`), then production (`-S .`):
       creates the S7 checks and leaves out the S11 defaults. A table already rebuilt is rebuilt again until its times are datetime2.
    7. `fixes/S7_check_constraints.sql` (adds any check the rebuild didn't), `fixes/S8_indexes.sql`, `fixes/V3_maintenancelog_bikeid.sql`
    8. `fixes/S16_distance_report.sql`: read-only, for the S16 decision
-8. After the quarantine period: `03_drop_archived_objects.sql`, `03b_drop_gpx_tables.sql`
+8. Move the archive to its own database:
+   1. `archive/scripts/05_copy_archive_to_database.sql` (preview, then `@Apply = 1`): creates `FitnessArchive` (owner sa, level 170)
+      and copies every `[archive]` table with its rows and every procedure and function, into `dbo`, then compares them all.
+   2. Extract the `db/FitnessArchive` SQL project from it (see `db/FitnessArchive/README.md`), build, DeployReport, commit.
+   3. Back up Fitness and FitnessArchive, then `archive/scripts/06_drop_archive_schema.sql` (check, then `@Apply = 1`):
+      drops `[archive]` from Fitness, only if FitnessArchive matches. This replaces `03_drop_archived_objects.sql` and `03b_drop_gpx_tables.sql`.
 
 After each step: re-import the project from the database (or make the same edit), build, commit.
 
@@ -52,7 +57,8 @@ cd db\scripts
 .\Run-FitnessScripts.ps1 -Phase Duration -Apply            # views + rebuild
 .\Run-FitnessScripts.ps1 -Phase Permissions -ServiceUser 'IIS APPPOOL\<Pool>' [-Apply]
 .\Run-FitnessScripts.ps1 -Phase Fix -Script S8_indexes [-Apply]   # any script in fixes\
-.\Run-FitnessScripts.ps1 -Phase Drop                       # after the quarantine period
+.\Run-FitnessScripts.ps1 -Phase ArchiveDb [-Apply]         # copy [archive] to FitnessArchive (05)
+.\Run-FitnessScripts.ps1 -Phase Drop [-Apply]              # drop [archive] from Fitness (06)
 ```
 
 The default target is staging (`.\DEVELOPMENT`). For production add `-Server . -Production`; you are asked to type the server name to confirm.

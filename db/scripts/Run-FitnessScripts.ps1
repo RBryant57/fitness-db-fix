@@ -18,9 +18,11 @@
                    tables\rebuild_<Table>.sql (nine tables)    preview only, unless -Apply
       Permissions  04_permissions.sql                          preview only, unless -Apply; needs -ServiceUser
       Fix          fixes\<Script>.sql                          one script from db\scripts\fixes; preview unless -Apply
-      Drop         03_drop_archived_objects.sql                final removal after the quarantine period
-                   03b_drop_gpx_tables.sql
-      Rollback     02b_rollback_gpx_archive.sql, 02_rollback_archive.sql   undo Archive
+      ArchiveDb    05_copy_archive_to_database.sql             copy the [archive] schema to the FitnessArchive database
+                                                               and compare; preview unless -Apply
+      Drop         06_drop_archive_schema.sql                  drop [archive] from Fitness once FitnessArchive matches;
+                                                               preview unless -Apply (replaces 03 and 03b)
+      Rollback     02b_rollback_gpx_archive.sql, 02_rollback_archive.sql   undo Archive (not possible after Drop)
 
     Every script's output is saved under db\scripts\logs. The run stops at the first error.
     Staging (an instance named ...\DEVELOPMENT) is the default target. Any other server is treated as production
@@ -37,18 +39,22 @@
     .\Run-FitnessScripts.ps1 -Phase Fix -Script S8_indexes            # preview
     .\Run-FitnessScripts.ps1 -Phase Fix -Script S8_indexes -Apply
 .EXAMPLE
+    .\Run-FitnessScripts.ps1 -Phase ArchiveDb -Apply   # create FitnessArchive and copy [archive] into it
+    .\Run-FitnessScripts.ps1 -Phase Drop               # check the copy
+    .\Run-FitnessScripts.ps1 -Phase Drop -Apply        # drop [archive] from Fitness
+.EXAMPLE
     .\Run-FitnessScripts.ps1 -Phase Archive -Server . -Production
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('Audit', 'Test', 'Archive', 'DataFix', 'Duration', 'Permissions', 'Fix', 'Drop', 'Rollback')]
+    [ValidateSet('Audit', 'Test', 'Archive', 'DataFix', 'Duration', 'Permissions', 'Fix', 'ArchiveDb', 'Drop', 'Rollback')]
     [string]$Phase,
 
     [string]$Server = '.\DEVELOPMENT',
     [string]$Database = 'Fitness',
 
-    # Make changes in the phases that preview by default (DataFix, Duration, Permissions).
+    # Make changes in the phases that preview by default (DataFix, Duration, Permissions, Fix, ArchiveDb, Drop).
     [switch]$Apply,
 
     # Database user the .NET service connects as (Permissions phase).
@@ -216,11 +222,23 @@ try {
             if ($hasApply -and -not $Apply) { Write-Host "`nPreview only. Review the output, then run again with -Apply." -ForegroundColor Green }
         }
 
+        'ArchiveDb' {
+            $src = Get-Script "$archive\05_copy_archive_to_database.sql"
+            $run = if ($Apply) { New-ScriptCopy $src @{ 'DECLARE @Apply\s+bit\s*=\s*0;' = 'DECLARE @Apply  bit     = 1;' } } else { $src }
+            Invoke-Script $run '05_copy_archive_to_database.sql' | Out-Null
+            if ($Apply) { Write-Host "`nFitnessArchive matches [archive]. Next: extract and build the FitnessArchive project, then -Phase Drop (preview)." -ForegroundColor Green }
+            else { Write-Host "`nPreview only. Review the list, then run again with -Apply." -ForegroundColor Green }
+        }
+
         'Drop' {
-            $answer = Read-Host 'This permanently drops the archived procedures, functions and GPX tables. Type DROP to continue'
-            if ($answer -ne 'DROP') { throw 'Not confirmed. Nothing was run.' }
-            Invoke-Script (Get-Script "$archive\03_drop_archived_objects.sql") '03_drop_archived_objects.sql' | Out-Null
-            Invoke-Script (Get-Script "$archive\03b_drop_gpx_tables.sql")      '03b_drop_gpx_tables.sql'      | Out-Null
+            $src = Get-Script "$archive\06_drop_archive_schema.sql"
+            if ($Apply) {
+                $answer = Read-Host 'This drops the [archive] schema and everything in it from Fitness (FitnessArchive keeps the copy). Back up both databases first. Type DROP to continue'
+                if ($answer -ne 'DROP') { throw 'Not confirmed. Nothing was run.' }
+                $run = New-ScriptCopy $src @{ 'DECLARE @Apply\s+bit\s*=\s*0;' = 'DECLARE @Apply  bit     = 1;' }
+            } else { $run = $src }
+            Invoke-Script $run '06_drop_archive_schema.sql' | Out-Null
+            if (-not $Apply) { Write-Host "`nCheck only. If every object says 'copy OK', back up both databases and run again with -Apply." -ForegroundColor Green }
         }
 
         'Rollback' {

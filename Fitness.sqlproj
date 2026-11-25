@@ -15,5 +15,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Build Remove="db\scripts\**" />                <!-- hand-run scripts and reference copies, not part of the model -->
+    <Build Remove="db\FitnessArchive\**" />         <!-- the separate FitnessArchive project -->
   </ItemGroup>
 </Project>
